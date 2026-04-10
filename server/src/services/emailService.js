@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // const sendVerificationEmail = async (name, email, token) => {
-//   const link = `${process.env.BASE_URL}/verify?token=${token}`;
+//   const link = `${process.env.CLIENT_URL}/verify?token=${token}`;
 
 //   await transporter.sendMail({
 //     from: `Zimpeer <${process.env.GMAIL}>`,
@@ -72,7 +72,7 @@ const transporter = nodemailer.createTransport({
 // };
 
 // const sendResetPWEmail = async (name, email, token) => {
-//   const link = `${process.env.BASE_URL}/reset-password?token=${token}`;
+//   const link = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
 
 //   await transporter.sendMail({
 //     from: `Zimpeer <${process.env.GMAIL}>`,
@@ -136,11 +136,11 @@ const transporter = nodemailer.createTransport({
 //   });
 // };
 
-const BASE_URL = process.env.BASE_URL || process.env.BASE_URL;
-const logoUrl = `${BASE_URL}/public/assets/logo/logo-dark.png`;
+const CLIENT_URL = process.env.CLIENT_URL;
+const logoUrl = `${CLIENT_URL}/public/assets/logo/logo-dark.png`;
 
 const sendVerificationEmail = async (name, email, token) => {
-  const link = `${BASE_URL}/verify?token=${token}`;
+  const link = `${CLIENT_URL}/verify?token=${token}`;
 
   await transporter.sendMail({
     from: `Zimpeer <${process.env.GMAIL}>`,
@@ -194,7 +194,7 @@ const sendVerificationEmail = async (name, email, token) => {
 };
 
 const sendResetPWEmail = async (name, email, token) => {
-  const link = `${BASE_URL}/reset-password?token=${token}`;
+  const link = `${CLIENT_URL}/reset-password?token=${token}`;
 
   await transporter.sendMail({
     from: `Zimpeer <${process.env.GMAIL}>`,
