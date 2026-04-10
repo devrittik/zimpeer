@@ -40,7 +40,7 @@ export default function Footer() {
                                 <MuiLink component={RouterLink} to="/home" underline="none" sx={{ color: 'text.primary', '&:hover': { color: 'primary.main' } }} aria-label="Create Meeting">
                                     Create Meeting
                                 </MuiLink>
-                                <MuiLink component={RouterLink} to="/room" underline="none" sx={{ color: 'text.primary', '&:hover': { color: 'primary.main' } }} aria-label="Join Meeting">
+                                <MuiLink component={RouterLink} to="/home" underline="none" sx={{ color: 'text.primary', '&:hover': { color: 'primary.main' } }} aria-label="Join Meeting">
                                     Join Meeting
                                 </MuiLink>
                             </Box>
