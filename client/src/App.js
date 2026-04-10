@@ -1,12 +1,11 @@
 import './App.css';
-import { Route, BrowserRouter as Router, Routes, Navigate } from 'react-router-dom';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import LandingPage from './pages/landing';
 import Authentication from './pages/authentication';
 import VideoMeetComponent from './pages/videoMeet';
 import VerifyPage from './pages/verify';
 import Privacy from './pages/privacy';
 import { AuthProvider } from './contexts/AuthContext';
-import { isAuthenticated } from './utils/withAuth';
 import Home from './pages/home';
 import History from './pages/history';
 import ResetPW from './pages/resetPW';

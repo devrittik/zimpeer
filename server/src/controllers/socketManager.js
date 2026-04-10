@@ -1,6 +1,9 @@
 import { Server } from "socket.io";
 import { Meeting } from "../models/meeting.model.js";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config({ path: new URL('../../.env', import.meta.url) });
 
 let connections = {};
 let messages = {};
@@ -33,7 +36,7 @@ const buildDisplayName = (socket, incomingDisplayName) => {
 export const connectToSocket = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: "*",
+            origin: `${process.env.CLIENT_URL}`,
             methods: ["GET", "POST"],
             allowedHeaders: ["*"],
             credentials: true

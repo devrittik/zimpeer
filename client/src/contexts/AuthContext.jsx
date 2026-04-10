@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios, { HttpStatusCode } from "axios";
 import { jwtDecode } from "jwt-decode";
@@ -49,28 +49,31 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [authMessage, setAuthMessage] = useState(null);
 
-  const getCurrentPath = () => `${location.pathname}${location.search}`;
+  const getCurrentPath = useCallback(
+    () => `${location.pathname}${location.search}`,
+    [location.pathname, location.search]
+  );
 
-  const rememberAuthRedirect = (from) => {
+  const rememberAuthRedirect = useCallback((from) => {
     if (from && from !== "/auth") {
       sessionStorage.setItem("authRedirectTo", from);
     }
-  };
+  }, []);
 
-  const consumeAuthRedirect = () => {
+  const consumeAuthRedirect = useCallback(() => {
     const redirectTo = sessionStorage.getItem("authRedirectTo") || "/home";
     sessionStorage.removeItem("authRedirectTo");
     return redirectTo === "/auth" ? "/home" : redirectTo;
-  };
+  }, []);
 
-  const consumeAuthMessage = () => {
+  const consumeAuthMessage = useCallback(() => {
     const message = authMessage || sessionStorage.getItem("authMessage");
     setAuthMessage(null);
     sessionStorage.removeItem("authMessage");
     return message;
-  };
+  }, [authMessage]);
 
-  const handleSessionExpired = (from = getCurrentPath()) => {
+  const handleSessionExpired = useCallback((from = getCurrentPath()) => {
     localStorage.removeItem("token");
     setUser(GUEST_USER);
     rememberAuthRedirect(from);
@@ -80,9 +83,9 @@ export const AuthProvider = ({ children }) => {
     if (location.pathname !== "/auth") {
       router("/auth", { replace: true });
     }
-  };
+  }, [getCurrentPath, location.pathname, rememberAuthRedirect, router]);
 
-  const ensureRegisteredSession = (from = getCurrentPath()) => {
+  const ensureRegisteredSession = useCallback((from = getCurrentPath()) => {
     const tokenState = getTokenState(localStorage.getItem("token"));
 
     if (tokenState.hasToken && !tokenState.isGuest && (tokenState.isExpired || tokenState.isInvalid)) {
@@ -91,9 +94,9 @@ export const AuthProvider = ({ children }) => {
     }
 
     return true;
-  };
+  }, [getCurrentPath, handleSessionExpired]);
 
-  const handleAuthError = (error, from = getCurrentPath()) => {
+  const handleAuthError = useCallback((error, from = getCurrentPath()) => {
     if (error?.response?.status !== 401) return false;
 
     const tokenState = getTokenState(localStorage.getItem("token"));
@@ -104,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return false;
-  };
+  }, [getCurrentPath, handleSessionExpired]);
 
   const isNetworkError = (error) => !error?.response;
 
@@ -181,7 +184,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const getUserHistory = async () => {
+  const getUserHistory = useCallback(async () => {
     if (!ensureRegisteredSession("/history")) return [];
 
     try {
@@ -195,9 +198,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       throw error;
     }
-  }
+  }, [ensureRegisteredSession]);
 
-  const createMeeting = async () => {
+  const createMeeting = useCallback(async () => {
     if (!ensureRegisteredSession("/home")) return;
 
     try {
@@ -222,7 +225,7 @@ export const AuthProvider = ({ children }) => {
       setUser(GUEST_USER);
       router("/auth");
     }
-  };
+  }, [ensureRegisteredSession, handleAuthError, router]);
 
   let handleJoinCall = async (meetingCode, tokenOverride) => {
     let token = tokenOverride ?? localStorage.getItem("token");
@@ -238,7 +241,7 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -283,15 +286,15 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [handleAuthError, handleSessionExpired]);
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [fetchUser]);
 
   useEffect(() => {
     ensureRegisteredSession();
-  }, [location.pathname, location.search]);
+  }, [ensureRegisteredSession, location.pathname, location.search]);
 
   useEffect(() => {
     const tokenState = getTokenState(localStorage.getItem("token"));
@@ -310,7 +313,7 @@ export const AuthProvider = ({ children }) => {
     }, tokenState.expiresAt - Date.now());
 
     return () => clearTimeout(sessionTimer);
-  }, [user, location.pathname, location.search]);
+  }, [handleSessionExpired, location.pathname, location.search, user]);
 
   const generateGuestToken = async () => {
     console.log("before generating");

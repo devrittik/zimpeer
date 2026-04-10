@@ -50,7 +50,7 @@ const VerifyPage = () => {
         };
 
         verifyUser();
-    }, [params]);
+    }, [params, router]);
 
     const statusContent = {
         verifying: {

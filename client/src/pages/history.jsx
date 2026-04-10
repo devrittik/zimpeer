@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import HomeIcon from "@mui/icons-material/Home";
 import RestoreIcon from "@mui/icons-material/Restore";
 import FileCopyOutlinedIcon from '@mui/icons-material/FileCopyOutlined';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
@@ -39,7 +38,7 @@ function History() {
         }
 
         fetchHistory();
-    }, []);
+    }, [getUserHistory, handleAuthError]);
 
     return (
         <>

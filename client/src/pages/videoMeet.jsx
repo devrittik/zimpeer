@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
-import { Alert, Badge, Box, IconButton, Snackbar, Tooltip, Typography, Menu, Paper, Divider } from "@mui/material";
+import { Alert, Badge, Box, IconButton, Snackbar, Tooltip, Typography, Menu, Divider } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import MicIcon from "@mui/icons-material/Mic";
@@ -887,12 +887,14 @@ export default function VideoMeet() {
 
     // CLEANUP
     useEffect(() => {
+        const activeConnections = connectionsRef.current;
+
         return () => {
             if (joinNoticeTimeoutRef.current) {
                 clearTimeout(joinNoticeTimeoutRef.current);
             }
             socketRef.current?.disconnect();
-            Object.values(connectionsRef.current).forEach((pc) => pc.close());
+            Object.values(activeConnections).forEach((pc) => pc.close());
             localStreamRef.current?.getTracks().forEach((t) => t.stop());
         };
     }, []);

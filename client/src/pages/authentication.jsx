@@ -177,7 +177,7 @@ export default function Authentication() {
       setMessage(storedMessage);
       setOpen(true);
     }
-  }, [authMessage]);
+  }, [authMessage, consumeAuthMessage]);
 
   React.useEffect(() => {
     if (!loading && user && !user.isGuest && !loginInProgressRef.current) {
@@ -209,7 +209,7 @@ export default function Authentication() {
 
   let handleAuth = async () => {
     try {
-      if (formState == 0) { // Login
+      if (formState === 0) { // Login
         loginInProgressRef.current = true;
         let result = await handleLogin(username, password);
         const redirectTo = getLoginRedirect();
@@ -219,7 +219,7 @@ export default function Authentication() {
         setError("");
         router(redirectTo, { replace: true });
         return;
-      } else if (formState == 1) { // Register
+      } else if (formState === 1) { // Register
         // Validate before submission
         validateUsername(username);
         validatePassword(password);
@@ -249,7 +249,7 @@ export default function Authentication() {
         setError("");
         setAgreedToTerms(false);
         setFormState(0);
-      } else if (formState == 2) { // Forgot Password
+      } else if (formState === 2) { // Forgot Password
         let result = await handleForgotPassword(email);
         console.log(result);
         setShowResend(true);
@@ -859,7 +859,7 @@ export default function Authentication() {
                 onClick={handleAuth}
                 disabled={
                   (formState === 0 && (!username || !password)) ||
-                  (formState == 1 && (
+                  (formState === 1 && (
                     !name ||
                     !usernameValid ||
                     usernameAvailable === false ||
@@ -890,7 +890,7 @@ export default function Authentication() {
                 }}
               >
                 {
-                  (formState == 2) ? "Send Reset Link" : ((formState == 1) ? "Sign Up" : "Sign In")
+                  (formState === 2) ? "Send Reset Link" : ((formState === 1) ? "Sign Up" : "Sign In")
                 }
 
               </Button>
@@ -924,9 +924,9 @@ export default function Authentication() {
                       try {
                         let result;
 
-                        if (formState == 1) {
+                        if (formState === 1) {
                           result = await handleResend(email);
-                        } else if (formState == 2) {
+                        } else if (formState === 2) {
                           result = await handleForgotPassword(email);
                         }
 
