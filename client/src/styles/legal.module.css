@@ -1,0 +1,57 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  padding: 16px;
+  align-items: flex-start;
+  padding-top: 48px;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%);
+}
+
+.cardContent {
+  max-width: 760px;
+}
+
+.logo {
+  width: 160px;
+  height: auto;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.muted {
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.section {
+  margin-top: 12px;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.list {
+  margin-left: 18px;
+  margin-bottom: 8px;
+  color: #cfe0ff;
+}
+
+.list li {
+  margin: 6px 0;
+}
+
+.backWrap {
+  margin-top: 18px;
+}
