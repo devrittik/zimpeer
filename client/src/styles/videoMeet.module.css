@@ -83,6 +83,18 @@
 
 /*  MEETING ROOM STYLES  */
 .meetRoot {
+  --mobile-control-bar-height: 120px;
+  --mobile-control-bottom-offset: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  --mobile-self-preview-width: 96px;
+  --mobile-self-preview-height: 128px;
+  --mobile-self-preview-offset: 12px;
+  --mobile-self-preview-gap: 6px;
+  --mobile-grid-top-padding: 12px;
+  --mobile-grid-side-padding: 10px;
+  --mobile-grid-gap: 10px;
+  --mobile-grid-bottom-clearance: calc(var(--mobile-control-bar-height) + var(--mobile-control-bottom-offset) + 4px);
+  --mobile-grid-available-height: calc(100dvh - var(--mobile-grid-top-padding) - var(--mobile-grid-bottom-clearance));
+  --mobile-tile-aspect-ratio: 16 / 9;
   position: relative;
   width: 100vw;
   height: 100vh;
@@ -136,13 +148,13 @@
   background-color: #2a2a2a;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.24);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .videoTile:hover {
   transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 14px 32px rgba(2, 6, 23, 0.3);
 }
 
 .videoTile video {
@@ -151,20 +163,41 @@
   object-fit: cover;
 }
 
+.videoTileLabel {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+  color: #f8fafc;
+  font-size: clamp(0.68rem, 2.4vw, 0.82rem);
+  font-weight: 600;
+  max-width: 76%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+}
+
 /*  SELF VIDEO (PIP)  */
 .selfVideo {
   position: absolute;
   bottom: 100px;
   right: 20px;
   width: 240px;
-  height: 180px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 12px;
-  border: 3px solid #667eea;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 3px solid rgba(99, 102, 241, 0.6);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.25);
   object-fit: cover;
   transform: scaleX(-1); /* Mirror effect */
   z-index: 10;
-  background-color: #2a2a2a;
+  background-color: #1a1a1a;
   transition: all 0.3s ease;
 }
 
@@ -238,56 +271,160 @@
 
 /*  RESPONSIVE DESIGN  */
 @media (max-width: 768px) {
-  .lobbyContainer {
-    flex-direction: column;
+  .meetRoot {
+    height: 100dvh;
   }
 
-  .previewWrapper {
+  .videoCanvas {
+    align-items: flex-start;
+    padding:
+      var(--mobile-grid-top-padding)
+      var(--mobile-grid-side-padding)
+      var(--mobile-grid-bottom-clearance)
+      var(--mobile-grid-side-padding);
+  }
+
+  .videoGrid {
     width: 100%;
-    max-width: 400px;
-    height: 250px;
+    height: var(--mobile-grid-available-height);
+    min-height: var(--mobile-grid-available-height);
+    max-height: var(--mobile-grid-available-height);
+    gap: var(--mobile-grid-gap);
+    align-content: start;
+    grid-auto-flow: row;
+    grid-auto-rows: minmax(0, 1fr);
+    overflow: hidden;
   }
 
-  .lobbyForm {
-    width: 100%;
-    max-width: 400px;
+  .videoGrid.one,
+  .videoGrid.two,
+  .videoGrid.four,
+  .videoGrid.many {
+    grid-template-rows: none;
+    grid-auto-rows: minmax(0, 1fr);
   }
 
-  .selfVideo {
-    width: 120px;
-    height: 90px;
-    bottom: 90px;
-    right: 10px;
+  .videoGrid.one {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .videoGrid.one .videoTile {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .videoGrid.two {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .videoGrid.two .videoTile:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .videoGrid.two .videoTile {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .videoGrid.four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
   }
 
   .videoGrid.many {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-auto-rows: unset;
+    align-content: start;
+    overflow: auto;
+    padding-right: 2px;
   }
 
-  .buttonsContainer {
-    bottom: 20px;
-    padding: 10px 20px;
-    gap: 12px;
+  .videoTile {
+    border-radius: 16px;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .videoGrid.four .videoTile {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .videoGrid.many .videoTile {
+    aspect-ratio: 4 / 3;
+    height: auto;
+  }
+
+  .selfVideo {
+    width: min(var(--mobile-self-preview-width), calc(30vw + 4px));
+    height: var(--mobile-self-preview-height);
+    max-height: none;
+    bottom: calc(var(--mobile-control-bar-height) + var(--mobile-control-bottom-offset) + var(--mobile-self-preview-gap));
+    right: var(--mobile-self-preview-offset);
+    border-width: 2px;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.34);
   }
 
   .meetingControlBar {
     width: calc(100vw - 24px);
     justify-content: center;
+    padding-inline: 12px;
+  }
+
+  .videoTileLabel {
+    top: 8px;
+    max-width: calc(100% - 52px);
+    padding: 4px 9px;
+    font-size: 0.72rem;
+    line-height: 1.2;
   }
 }
 
 @media (max-width: 480px) {
-  .videoCanvas {
-    padding: 10px;
+  .meetRoot {
+    --mobile-control-bar-height: 112px;
+    --mobile-control-bottom-offset: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    --mobile-self-preview-width: 84px;
+    --mobile-self-preview-height: 112px;
+    --mobile-self-preview-offset: 8px;
+    --mobile-self-preview-gap: 6px;
+    --mobile-grid-top-padding: 10px;
+    --mobile-grid-side-padding: 8px;
+    --mobile-grid-gap: 8px;
+    --mobile-grid-bottom-clearance: calc(var(--mobile-control-bar-height) + var(--mobile-control-bottom-offset) + 4px);
   }
 
-  .selfVideo {
-    width: 100px;
-    height: 75px;
-    bottom: 80px;
+  .videoCanvas {
+    padding:
+      var(--mobile-grid-top-padding)
+      var(--mobile-grid-side-padding)
+      var(--mobile-grid-bottom-clearance)
+      var(--mobile-grid-side-padding);
   }
 
   .videoGrid {
+    gap: var(--mobile-grid-gap);
+  }
+
+  .videoGrid.many {
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  }
+
+  .meetingControlBar {
+    width: calc(100vw - 12px);
+    max-width: 320px;
+    padding: 10px;
     gap: 8px;
+    row-gap: 8px;
+  }
+
+  .videoTileLabel {
+    top: 7px;
+    padding: 4px 8px;
+    font-size: 0.68rem;
+    max-width: calc(100% - 44px);
   }
 }

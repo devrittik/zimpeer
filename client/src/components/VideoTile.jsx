@@ -6,12 +6,17 @@ import styles from "../styles/videoMeet.module.css";
 
 const hostActionSx = {
     position: "absolute",
-    top: 10,
+    top: { xs: 8, sm: 10 },
     color: "white",
-    padding: 1,
+    width: { xs: 30, sm: 36 },
+    height: { xs: 30, sm: 36 },
+    padding: { xs: 0.7, sm: 1 },
     borderRadius: 2,
     backdropFilter: "blur(10px)",
     transition: "all 0.2s ease",
+    "& .MuiSvgIcon-root": {
+        fontSize: { xs: "0.9rem", sm: "1rem" },
+    },
     "&:hover": {
         transform: "scale(1.08)",
     },
@@ -31,25 +36,7 @@ const VideoTile = React.memo(({ stream, user, isHost, onKick, onBlock }) => {
             <video ref={videoRef} autoPlay playsInline />
 
             <div
-                style={{
-                    position: "absolute",
-                    top: 12,
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    padding: "6px 12px",
-                    borderRadius: 999,
-                    background: "rgba(15, 23, 42, 0.72)",
-                    backdropFilter: "blur(10px)",
-                    color: "#f8fafc",
-                    fontSize: "0.82rem",
-                    fontWeight: 600,
-                    maxWidth: "70%",
-                    textAlign: "center",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    zIndex: 2,
-                }}
+                className={styles.videoTileLabel}
                 title={user?.displayName || "Participant"}
             >
                 {user?.displayName || "Participant"}
@@ -62,7 +49,7 @@ const VideoTile = React.memo(({ stream, user, isHost, onKick, onBlock }) => {
                             onClick={() => onBlock(user.id, user.username)}
                             sx={{
                                 ...hostActionSx,
-                                left: 10,
+                                left: 8,
                                 backgroundColor: "rgba(220, 38, 38, 0.9)",
                                 "&:hover": {
                                     ...hostActionSx["&:hover"],
@@ -79,7 +66,7 @@ const VideoTile = React.memo(({ stream, user, isHost, onKick, onBlock }) => {
                             onClick={() => onKick(user.id, user.username)}
                             sx={{
                                 ...hostActionSx,
-                                right: 10,
+                                right: 8,
                                 backgroundColor: "rgba(99, 102, 241, 0.9)",
                                 "&:hover": {
                                     ...hostActionSx["&:hover"],

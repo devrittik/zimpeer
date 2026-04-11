@@ -31,10 +31,10 @@ function HomeComponent() {
             <Box
                 sx={{
                     minHeight: "calc(100vh - 64px)",
+                    px: { xs: 1.5, sm: 2, md: 4 },
+                    pb: { xs: 3, md: 4 },
+                    pt: { xs: 1, md: 3 },
                     background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%)",
-                    px: 4,
-                    pb: 4,
-                    pt: 2,
                     position: "relative",
                     overflow: "hidden",
                     "&::before": {
@@ -57,10 +57,9 @@ function HomeComponent() {
                         alignItems: "center",
                         gap: { xs: 2, md: 8 },
                         maxWidth: 1400,
-                        margin: "0 auto",
-                        minHeight: "calc(100vh - 64px)",
+                        mx: "auto",
                         flexWrap: { xs: "wrap", md: "nowrap" },
-                        padding: { xs: 2, md: 0 },
+                        py: { xs: 0, md: 2 },
                     }}
                 >
                     <Box
@@ -71,10 +70,18 @@ function HomeComponent() {
                             justifyContent: "center",
                             gap: 3,
                             flex: 1,
-                            minWidth: { xs: "100%", md: "400px" },
+                            mt: { xs: 2, md: 0 },
+                            minWidth: { xs: "90%", md: "400px" },
+                            py: { xs: 2, md: 0 },
                         }}
                     >
-                        <Card>
+                        <Card sx={{
+                            width: "100%",
+                            maxWidth: { xs: 420, md: 400 },
+                            mx: "auto",
+                            my: { xs: 1, md: 0 },
+                            overflow: "hidden",
+                        }}>
                             <Box
                                 sx={{
                                     display: "flex",
@@ -93,6 +100,8 @@ function HomeComponent() {
                                         WebkitTextFillColor: "transparent",
                                         textAlign: "center",
                                         mb: 1,
+                                        fontSize: { xs: "2rem", sm: "2.4rem", md: "2rem" },
+                                        lineHeight: 1.1,
                                     }}
                                 >
                                     Quality Video Meetings
@@ -151,8 +160,8 @@ function HomeComponent() {
                                         }}
                                         sx={{
                                             background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                                            py: 1.3,
-                                            fontSize: "1rem",
+                                            py: { xs: 1, md: 1.3 },
+                                            fontSize: { xs: "0.9rem", md: "1rem" },
                                             boxShadow: "0 8px 16px rgba(99, 102, 241, 0.3)",
                                             "&:hover": {
                                                 boxShadow: "0 12px 24px rgba(99, 102, 241, 0.4)",
@@ -169,7 +178,7 @@ function HomeComponent() {
                                     sx={{
                                         height: 1,
                                         background: "rgba(148, 163, 184, 0.2)",
-                                        my: 1,
+                                        my: 0.5,
                                     }}
                                 />
 
@@ -190,8 +199,8 @@ function HomeComponent() {
                                         onClick={handleCreateMeeting}
                                         sx={{
                                             background: "linear-gradient(to right, #22c55e, #16a34a)",
-                                            py: 1.3,
-                                            fontSize: "1rem",
+                                            py: { xs: 1, md: 1.3 },
+                                            fontSize: { xs: "0.9rem", md: "1rem" },
                                             boxShadow: "0 8px 16px rgba(34, 197, 94, 0.3)",
                                             "&:hover": {
                                                 boxShadow: "0 12px 24px rgba(34, 197, 94, 0.4)",

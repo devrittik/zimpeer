@@ -87,7 +87,15 @@ function Navbar() {
                     width: '100%'
                 }}
             >
-                <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Toolbar
+                    sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        minHeight: { xs: 60, sm: 68 },
+                        px: { xs: 1.5, sm: 2, md: 3 },
+                        gap: 1.25,
+                    }}
+                >
 
                     <Typography
                         sx={{ cursor: "pointer" }}
@@ -95,13 +103,14 @@ function Navbar() {
                     >
                         <img src={logo} alt="Zimpeer" className="logo"
                             style={{
-                                height: "38px",
-                                width: "auto"
+                                height: "clamp(30px, 6vw, 38px)",
+                                width: "auto",
+                                display: "block",
                             }}
                         />
                     </Typography>
 
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.35, sm: 0.6, md: 0.75 } }}>
                         {navActions
                             .filter((action) => !action.hidden)
                             .map((action) => (
@@ -113,7 +122,13 @@ function Navbar() {
                                         sx={{
                                             border: "1px solid rgba(255,255,255,0.12)",
                                             backgroundColor: "rgba(255,255,255,0.04)",
+                                            width: { xs: 38, sm: 42, md: 46 },
+                                            height: { xs: 38, sm: 42, md: 46 },
+                                            padding: { xs: 0.7, sm: 0.9, md: 1 },
                                             transition: "all 0.2s ease",
+                                            "& .MuiSvgIcon-root": {
+                                                fontSize: { xs: "1.15rem", sm: "1.3rem", md: "1.45rem" },
+                                            },
                                             "&:hover": {
                                                 backgroundColor: "rgba(255,255,255,0.12)",
                                                 transform: "translateY(-1px)",
@@ -128,7 +143,7 @@ function Navbar() {
 
                 </Toolbar>
             </AppBar>
-            <Toolbar />
+            <Toolbar sx={{ minHeight: { xs: 60, sm: 68 } }} />
         </>
     );
 }

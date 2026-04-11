@@ -357,7 +357,7 @@ export default function Authentication() {
               </Typography>
 
               {/* Tab Buttons */}
-              <Box sx={{ display: "flex", gap: 1, width: "100%", mb: 3 }}>
+                <Box sx={{ display: "flex", gap: 1, width: "100%", mb: 1.5 }}>
                 <Button
                   variant={formState === 0 ? "contained" : "outlined"}
                   onClick={() => switchFormState(0)}
@@ -397,8 +397,8 @@ export default function Authentication() {
 
             {/* Form Section - Input Fields Only */}
             <Box component="form" noValidate sx={
-              (formState === 1)
-                ? { display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "flex-start", gap: 2, mb: 3 }
+                (formState === 1)
+                  ? { display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "flex-start", gap: 1, mb: 2 }
                 : { display: "flex", flexDirection: "column", gap: 2, alignItems: "center", mb: 3 }
             }>
 
@@ -414,25 +414,29 @@ export default function Authentication() {
                     autoFocus
                     onChange={(e) => setName(e.target.value)}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 48,
-                        padding: "12px 14px",
-                        color: "#f8fafc",
-                        "& fieldset": {
-                          borderColor: "rgba(148, 163, 184, 0.3)",
+                        "& .MuiOutlinedInput-root": {
+                          height: { xs: 38, sm: 40 },
+                          padding: 0,
+                          color: "#f8fafc",
+                          "& fieldset": {
+                            borderColor: "rgba(148, 163, 184, 0.3)",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: "rgba(99, 102, 241, 0.5)",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#6366f1",
+                            boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                          },
                         },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(99, 102, 241, 0.5)",
+                        "& .MuiOutlinedInput-input": {
+                          padding: { xs: "9px 12px", sm: "10px 14px" },
+                          boxSizing: "border-box",
                         },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#6366f1",
-                          boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                        "& .MuiOutlinedInput-input::placeholder": {
+                          color: "rgba(148, 163, 184, 0.6)",
+                          opacity: 1,
                         },
-                      },
-                      "& .MuiOutlinedInput-input::placeholder": {
-                        color: "rgba(148, 163, 184, 0.6)",
-                        opacity: 1,
-                      },
                     }}
                   />
                 </Box>
@@ -452,8 +456,8 @@ export default function Authentication() {
                       if (formState === 1) validateUsername(e.target.value);
                     }}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 48,
+                        "& .MuiOutlinedInput-root": {
+                          height: 40,
                         padding: "12px 14px",
                         color: "#f8fafc",
                         "& fieldset": {
@@ -480,8 +484,8 @@ export default function Authentication() {
                     onChange={(e) => setEmail(e.target.value)}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        height: 48,
-                        padding: "12px 14px",
+                        height: { xs: 38, sm: 40 },
+                        padding: 0,
                         color: "#f8fafc",
                         "& fieldset": {
                           borderColor: "rgba(148, 163, 184, 0.3)",
@@ -493,6 +497,10 @@ export default function Authentication() {
                           borderColor: "#6366f1",
                           boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
                         },
+                      },
+                      "& .MuiOutlinedInput-input": {
+                        padding: { xs: "9px 12px", sm: "10px 14px" },
+                        boxSizing: "border-box",
                       },
                       "& .MuiOutlinedInput-input::placeholder": {
                         color: "rgba(148, 163, 184, 0.6)",
@@ -557,7 +565,7 @@ export default function Authentication() {
                   onChange={(e) => setUsername(e.target.value)}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      height: 48,
+                      height: 40,
                       padding: "12px 14px",
                       color: "#f8fafc",
                       "& fieldset": {
@@ -605,7 +613,7 @@ export default function Authentication() {
                   }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      height: 48,
+                      height: 40,
                       padding: "12px 14px",
                       color: "#f8fafc",
                       "& fieldset": {
@@ -656,8 +664,8 @@ export default function Authentication() {
                       ),
                     }}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 48,
+                    "& .MuiOutlinedInput-root": {
+                      height: 40,
                         padding: "12px 14px",
                         color: "#f8fafc",
                         "& fieldset": {
@@ -701,8 +709,8 @@ export default function Authentication() {
                       ),
                     }}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 48,
+                    "& .MuiOutlinedInput-root": {
+                      height: 40,
                         padding: "12px 14px",
                         color: "#f8fafc",
                         "& fieldset": {
@@ -783,25 +791,29 @@ export default function Authentication() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 48,
-                        padding: "12px 14px",
-                        color: "#f8fafc",
-                        "& fieldset": {
-                          borderColor: "rgba(148, 163, 184, 0.3)",
+                        "& .MuiOutlinedInput-root": {
+                          height: { xs: 38, sm: 40 },
+                          padding: 0,
+                          color: "#f8fafc",
+                          "& fieldset": {
+                            borderColor: "rgba(148, 163, 184, 0.3)",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: "rgba(99, 102, 241, 0.5)",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#6366f1",
+                            boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                          },
                         },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(99, 102, 241, 0.5)",
+                        "& .MuiOutlinedInput-input": {
+                          padding: { xs: "9px 12px", sm: "10px 14px" },
+                          boxSizing: "border-box",
                         },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#6366f1",
-                          boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                        "& .MuiOutlinedInput-input::placeholder": {
+                          color: "rgba(148, 163, 184, 0.6)",
+                          opacity: 1,
                         },
-                      },
-                      "& .MuiOutlinedInput-input::placeholder": {
-                        color: "rgba(148, 163, 184, 0.6)",
-                        opacity: 1,
-                      },
                     }}
                   />
                 </Box>
@@ -839,7 +851,7 @@ export default function Authentication() {
                     />
                   }
                   label={
-                    <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
                       I agree to the{' '}
                       <Link component={RouterLink} to="/privacy" sx={{ color: '#6366f1', textDecoration: 'none' }}>
                         Privacy Policy

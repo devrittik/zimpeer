@@ -18,14 +18,14 @@ export default function Footer() {
                 px: { xs: 2, md: 4 },
             }}>
                 <Box sx={{ width: '100%', maxWidth: '1400px', mx: 'auto', px: { xs: 2, md: 3 } }}>
-                    <Box sx={{
-                        display: 'flex',
-                        flexDirection: { xs: 'column', md: 'row' },
-                        gap: 2,
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between'
-                    }}>
-                        <Box sx={{ width: { xs: '100%', md: '33.333%' }, pr: { md: 2 }, textAlign: 'left' }}>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    gap: { xs: 4, md: 2 },
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between'
+                }}>
+                        <Box sx={{ width: { xs: '100%', md: '33.333%' }, pr: { md: 2 }, textAlign: 'left', mb: { xs: 4, md: 0 } }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-start' }}>
                                 <Box component="img" src={logo} alt="Zimpeer" sx={{ width: { xs: 140, md: 220 }, height: 'auto' }} />
                                 <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 320 }}>
@@ -34,7 +34,7 @@ export default function Footer() {
                             </Box>
                         </Box>
 
-                        <Box sx={{ width: { xs: '100%', md: '33.333%' }, px: { md: 2 }, textAlign: 'left' }}>
+                        <Box sx={{ width: { xs: '100%', md: '33.333%' }, px: { md: 2 }, textAlign: 'left', mb: { xs: 4, md: 0 } }}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Product</Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-start' }}>
                                 <MuiLink component={RouterLink} to="/home" underline="none" sx={{ color: 'text.primary', '&:hover': { color: 'primary.main' } }} aria-label="Create Meeting">
@@ -46,7 +46,7 @@ export default function Footer() {
                             </Box>
                         </Box>
 
-                        <Box sx={{ width: { xs: '100%', md: '33.333%' }, pl: { md: 2 }, textAlign: 'left' }}>
+                        <Box sx={{ width: { xs: '100%', md: '33.333%' }, pl: { md: 2 }, textAlign: 'left', mb: { xs: 4, md: 0 } }}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>Legal & Contact</Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1, alignItems: 'flex-start' }}>
                                 <MuiLink component={RouterLink} to="/privacy" underline="none" sx={{ color: 'text.primary', '&:hover': { color: 'primary.main' } }} aria-label="Privacy Policy">
