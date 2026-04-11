@@ -17,6 +17,7 @@ const CLIENT_URL = process.env.CLIENT_URL;
 const logoUrl = `${CLIENT_URL}/public/assets/logo/logo-dark.png`;
 
 const sendVerificationEmail = async (name, email, token) => {
+
   const link = `${CLIENT_URL}/verify?token=${token}`;
 
   await transporter.sendMail({
