@@ -4,12 +4,12 @@ import dotenv from "dotenv";
 dotenv.config({ path: new URL('../../.env', import.meta.url) });
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
+  host: process.env.EMAIL_HOST,
+  port: Number(process.env.EMAIL_PORT),
   secure: false,
   auth: {
-    user: process.env.GMAIL,
-    pass: process.env.GMAIL_PASS,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -20,7 +20,7 @@ const sendVerificationEmail = async (name, email, token) => {
   const link = `${CLIENT_URL}/verify?token=${token}`;
 
   await transporter.sendMail({
-    from: `Zimpeer <${process.env.GMAIL}>`,
+    from: `Zimpeer <${process.env.SMTP_EMAIL}>`,
     to: email,
     subject: "Verify your email",
     html: `
@@ -74,7 +74,7 @@ const sendResetPWEmail = async (name, email, token) => {
   const link = `${CLIENT_URL}/reset-password?token=${token}`;
 
   await transporter.sendMail({
-    from: `Zimpeer <${process.env.GMAIL}>`,
+    from: `Zimpeer <${process.env.SMTP_EMAIL}>`,
     to: email,
     subject: "Reset your Zimpeer password",
     html: `
