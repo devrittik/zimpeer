@@ -20,8 +20,12 @@ app.use(express.urlencoded({ limit: "40kb", extended: true }));
 
 app.use("/api/v1/users", userRoutes);
 
-app.get("/home", (req, res) => {
-    return res.json({ "hello": "world" });
+app.get("/status", (req, res) => {
+  return res.status(200).json({
+    status: "up",
+    service: "zimpeer-backend",
+    timestamp: new Date().toISOString()
+  });
 });
 
 const start = async () => {

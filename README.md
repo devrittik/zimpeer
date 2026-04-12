@@ -42,7 +42,7 @@ Create or join meetings instantly with a clean, modern UI.
 ## Screenshots
 
 ![Landing Page](./screenshots/home.png)
-![Meeting Room](./screenshots/meeting.png)
+![Meeting Room](./screenshots/lobby.png)(./screenshots/meeting.png)
 
 ## How It Works
 
