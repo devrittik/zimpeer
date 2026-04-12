@@ -4,11 +4,21 @@ import Card from "../components/UI/Card";
 import Button from "../components/UI/Button";
 import logo from "../logo.svg";
 import styles from "../styles/legal.module.css";
+import { Helmet } from "react-helmet-async";
 
 export default function Privacy() {
     const navigate = useNavigate();
 
     return (
+        <>
+            <Helmet>
+                <title>Privacy Policy | Zimpeer</title>
+                <meta
+                    name="description"
+                    content="Read the privacy policy for Zimpeer video meetings."
+                />
+                <link rel="canonical" href="https://zimpeer.vercel.app/privacy" />
+            </Helmet>
         <Box className={styles.page}>
             <Card>
                 <div className={styles.cardContent}>
@@ -102,5 +112,6 @@ export default function Privacy() {
                 </div>
             </Card>
         </Box>
+        </>
     );
 }

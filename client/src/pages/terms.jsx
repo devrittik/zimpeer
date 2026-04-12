@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/UI/Card";
 import Button from "../components/UI/Button";
+import { Helmet } from "react-helmet-async";
 import logo from "../logo.svg";
 import styles from "../styles/legal.module.css";
 
@@ -9,6 +10,15 @@ export default function Terms() {
     const navigate = useNavigate();
 
     return (
+        <>
+            <Helmet>
+                <title>Terms & Conditions | Zimpeer</title>
+                <meta
+                    name="description"
+                    content="Read the terms and conditions for using Zimpeer."
+                />
+                <link rel="canonical" href="https://zimpeer.vercel.app/terms" />
+            </Helmet>
         <Box className={styles.page}>
             <Card>
                 <div className={styles.cardContent}>
@@ -91,5 +101,6 @@ export default function Terms() {
                 </div>
             </Card>
         </Box>
+        </>
     );
 }

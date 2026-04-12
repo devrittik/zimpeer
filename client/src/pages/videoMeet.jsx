@@ -15,12 +15,12 @@ import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ShareIcon from '@mui/icons-material/Share';
 import FacebookIcon from '@mui/icons-material/Facebook';
-import TwitterIcon from '@mui/icons-material/Twitter';
+import XIcon from '@mui/icons-material/X';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import EmailIcon from '@mui/icons-material/Email';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import TelegramIcon from '@mui/icons-material/Telegram';
-import SendIcon from '@mui/icons-material/Send';
+import InstagramIcon from '@mui/icons-material/Instagram';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 import Navbar from "../components/Navbar.jsx";
 import ChatPanel from "../components/ChatPanel.jsx";
@@ -36,7 +36,7 @@ import { useChatStore } from "../store/useChatStore.js";
 import { generateInviteText } from "../utils/generateInviteText.jsx";
 import { SERVER_URL } from "../config/env";
 
-// const SERVER_URL = process.env.SERVER_URL;
+import { Helmet } from "react-helmet-async";
 
 const ICE_CONFIG = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -342,32 +342,6 @@ export default function VideoMeet() {
         }
     };
 
-    // // Chat Message
-    // let sendMessage = () => {
-
-    //     console.log("SOCKET:", socketRef.current);
-
-    //     if (chatLocked && !isHost) {
-    //         return;
-    //     }
-
-    //     socketRef.current.emit("chat-message", message, displayName);
-    //     setMessage("");
-    // }
-
-    // let addMessage = (msg) => {
-
-    //     const { senderId } = msg;
-
-    //     console.log("Add Message (VideoMeet.jsx) : ", msg);
-
-    //     // setMessages((prev) => [...prev, { sender, data, senderId }]);
-
-    //     if (!showModal && senderId !== socketRef.current.id) {
-    //         setNewMessages((prev) => (prev || 0) + 1);
-    //     }
-    // };
-
     const connect = async () => { // JOIN
 
         clearChat();
@@ -556,20 +530,6 @@ export default function VideoMeet() {
 
             // Chat message handler
             const chatMessageHandler = (msg) => {
-                // Determine if the incoming message is from the current user.
-                // The original implementation attempted to skip adding
-                // self‑messages because they are already added locally via
-                // `sendPayload`. However, when a user rejoins the room the
-                // socket id changes and the server re‑broadcasts all
-                // messages, including the user’s own. The previous logic
-                // incorrectly identified those messages as *not* from the
-                // current user (due to the changed socket id) and then
-                // skipped them, causing self‑messages to disappear after a
-                // re‑join.
-                //
-                // To fix this, we always add the message to the store and
-                // rely on `mergeMessages` to dedupe by id. This guarantees
-                // that self‑messages are preserved across re‑joins.
                 const messageCreatedAt = msg?.createdAt ? new Date(msg.createdAt).getTime() : null;
                 const isHistoricalMessage =
                     typeof messageCreatedAt === "number" &&
@@ -801,7 +761,7 @@ export default function VideoMeet() {
             return;
         }
 
-        // Feature detection – some mobile browsers do not support getDisplayMedia
+        // some mobile browsers do not support getDisplayMedia
         if (!navigator.mediaDevices?.getDisplayMedia) {
             showToast("Screen sharing is not supported on this device", "error");
             return;
@@ -1061,6 +1021,11 @@ export default function VideoMeet() {
 
     // UI
     return (
+        <>
+            <Helmet>
+                <title>Meeting Room | Zimpeer</title>
+                <meta name="robots" content="noindex,nofollow" />
+            </Helmet>
         <div>
             {showPreview ? (
                 <Box
@@ -1395,7 +1360,7 @@ export default function VideoMeet() {
                                                 "&:hover": { backgroundColor: "rgba(29, 161, 242, 0.18)" },
                                             }}
                                         >
-                                            <TwitterIcon sx={{ fontSize: "1.25rem" }} />
+                                            <XIcon sx={{ fontSize: "1.25rem" }} />
                                         </IconButton>
                                     </Tooltip>
 
@@ -1485,7 +1450,7 @@ export default function VideoMeet() {
                                                 "&:hover": { opacity: 0.95 },
                                             }}
                                         >
-                                            <SendIcon sx={{ fontSize: "1.25rem" }} />
+                                            <InstagramIcon sx={{ fontSize: "1.25rem" }} />
                                         </IconButton>
                                     </Tooltip>
 
@@ -1649,15 +1614,6 @@ export default function VideoMeet() {
                                     onBlock={handleBlockParticipant}
                                 />
                             ))}
-                            {/* {videos.map(v => (
-                                <div key={v.socketId} className={styles.videoTile}>
-                                    <video
-                                        autoPlay
-                                        playsInline
-                                        ref={el => el && (el.srcObject = v.stream)}
-                                    />
-                                </div>
-                            ))} */}
                         </div>
                     </div>
 
@@ -1909,5 +1865,6 @@ export default function VideoMeet() {
                 </Alert>
             </Snackbar>
         </div>
+        </>
     );
 }

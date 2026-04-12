@@ -20,6 +20,8 @@ import Button from "../components/UI/Button";
 import Input from "../components/UI/Input";
 import icon from "../icon.svg";
 
+import { Helmet } from "react-helmet-async";
+
 export default function Authentication() {
   const [username, setUsername] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -270,6 +272,15 @@ export default function Authentication() {
 
       {/* <Navbar/> */}
 
+      <Helmet>
+        <title>Login / Register | Zimpeer</title>
+        <meta
+          name="description"
+          content="Login or create your Zimpeer account to start meetings."
+        />
+        <link rel="canonical" href="https://zimpeer.vercel.app/auth" />
+      </Helmet>
+
       <Box
         sx={{
           minHeight: "100vh",
@@ -294,7 +305,7 @@ export default function Authentication() {
           },
         }}
       >
-        {/* Centered Card Container */}
+        {/* Card Container */}
         <Card>
           <Box sx={{ maxWidth: 1000, width: "100%" }}>
             {/* Header Section */}
@@ -307,10 +318,6 @@ export default function Authentication() {
                   mb: 3,
                   textAlign: "center",
                 }
-                // (formState === 1)
-                //   ? { display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "center", textAlign: "center", gap: 2, mb: 3 }
-                // : { display: "flex", flexDirection: "column", gap: 2, alignItems: "center", mb: 3 }
-
               }
             >
               {/* Icon */}

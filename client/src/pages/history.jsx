@@ -10,6 +10,8 @@ import "../App.css";
 import Navbar from '../components/Navbar.jsx';
 import Footer from '../components/Footer';
 
+import { Helmet } from "react-helmet-async";
+
 function History() {
 
     const { getUserHistory, handleAuthError } = useContext(AuthContext);
@@ -42,6 +44,10 @@ function History() {
 
     return (
         <>
+            <Helmet>
+                <title>Meeting History | Zimpeer</title>
+                <meta name="robots" content="noindex,nofollow" />
+            </Helmet>
         <Box
             sx={{
                 minHeight: "100vh",
@@ -71,52 +77,6 @@ function History() {
                     pt: { xs: 4, md: 6 },
                 }}
             >
-                {/* Header */}
-                {/* <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 3,
-                        mb: 4,
-                    }}
-                >
-                    <Tooltip title="Back to home">
-                        <IconButton
-                            onClick={() => routeTo("/home")}
-                            sx={{
-                                color: "#6366f1",
-                                backgroundColor: "rgba(99, 102, 241, 0.1)",
-                                borderRadius: 2,
-                                padding: 1.5,
-                                "&:hover": {
-                                    backgroundColor: "rgba(99, 102, 241, 0.2)",
-                                    transform: "scale(1.05)",
-                                },
-                                transition: "all 0.2s ease",
-                            }}
-                        >
-                            <HomeIcon />
-                        </IconButton>
-                    </Tooltip>
-
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            fontWeight: 700,
-                            background: "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
-                            backgroundClip: "text",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            flex: 1,
-                            textAlign: "center",
-                        }}
-                    >
-                        Meeting History
-                    </Typography>
-
-                    <Box sx={{ width: 48 }} />
-                </Box> */}
 
                 {/* Content */}
                 {(!Array.isArray(meetings) || meetings.length === 0) ? (

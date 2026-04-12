@@ -5,18 +5,21 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import theme from "./theme/theme";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-      <Analytics />
-      <SpeedInsights />
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+        <Analytics />
+        <SpeedInsights />
+      </ThemeProvider>
+    </HelmetProvider>
   </React.StrictMode>
 );
 

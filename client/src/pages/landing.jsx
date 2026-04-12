@@ -7,6 +7,7 @@ import { Button } from "@mui/material";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import SecurityIcon from "@mui/icons-material/Security";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import { Helmet } from "react-helmet-async";
 
 export default function LandingPage() {
     const features = [
@@ -46,6 +47,17 @@ export default function LandingPage() {
     ];
 
     return (
+        <>
+        
+            <Helmet>
+              <title>Zimpeer | Free Secure Browser Video Meetings</title>
+              <meta
+                name="description"
+                content="Create or join secure HD video meetings instantly with Zimpeer. No downloads required."
+              />
+              <link rel="canonical" href="https://zimpeer.vercel.app/" />
+            </Helmet>
+
         <div className='landingPageContainer--modern'>
             <Navbar />
 
@@ -179,5 +191,7 @@ export default function LandingPage() {
             </section>
             <Footer />
         </div>
+
+        </>
     );
 };

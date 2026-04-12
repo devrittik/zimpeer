@@ -3,11 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Typography, Box, CircularProgress, IconButton, InputAdornment, Chip } from "@mui/material";
 import { Visibility, VisibilityOff, CheckCircle, Cancel } from "@mui/icons-material";
 import axios from "axios";
-// PageWrapper not used here; use authentication-style layout
 import Card from "../components/UI/Card";
 import Input from "../components/UI/Input";
 import Button from "../components/UI/Button";
 import icon from "../icon.svg";
+import { Helmet } from "react-helmet-async";
 import { USERS_API_URL } from "../config/env";
 
 const client = axios.create({
@@ -117,6 +117,12 @@ const ResetPW = () => {
     };
 
     return (
+        <>
+            <Helmet>
+              <title>Reset Password | Zimpeer</title>
+              <meta name="robots" content="noindex,nofollow" />
+            </Helmet>
+        
         <Box
             sx={{
                 minHeight: "100vh",
@@ -330,6 +336,7 @@ const ResetPW = () => {
                 )}
             </Card>
         </Box>
+        </>
     );
 };
 

@@ -6,6 +6,8 @@ import Card from "../components/UI/Card";
 import icon from "../icon.svg";
 import { USERS_API_URL } from "../config/env";
 
+import { Helmet } from "react-helmet-async";
+
 const client = axios.create({
     baseURL: USERS_API_URL,
 });
@@ -73,6 +75,11 @@ const VerifyPage = () => {
     const currentState = statusContent[status];
 
     return (
+        <>
+            <Helmet>
+              <title>Verify Account | Zimpeer</title>
+              <meta name="robots" content="noindex,nofollow" />
+            </Helmet>
         <Box
             sx={{
                 minHeight: "100vh",
@@ -160,6 +167,8 @@ const VerifyPage = () => {
                 </Box>
             </Card>
         </Box>
+
+        </>
     );
 };
 

@@ -8,6 +8,7 @@ import { AuthContext } from "../contexts/AuthContext.jsx";
 import Card from "../components/UI/Card.jsx";
 import Button from "../components/UI/Button.jsx";
 import Input from "../components/UI/Input.jsx";
+import { Helmet } from "react-helmet-async";
 
 function HomeComponent() {
     let router = useNavigate();
@@ -26,6 +27,14 @@ function HomeComponent() {
 
     return (
         <>
+            <Helmet>
+                <title>Create or Join Meetings | Zimpeer</title>
+                <meta
+                    name="description"
+                    content="Create or join video meetings instantly with Zimpeer. Guests can join meetings, and users can log in to create rooms."
+                />
+                <link rel="canonical" href="https://zimpeer.vercel.app/home" />
+            </Helmet>
             <Navbar />
 
             <Box
