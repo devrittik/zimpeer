@@ -33,7 +33,7 @@ function HomeComponent() {
                     minHeight: "calc(100vh - 64px)",
                     px: { xs: 1.5, sm: 2, md: 4 },
                     pb: { xs: 3, md: 4 },
-                    pt: { xs: 1, md: 3 },
+                    pt: { xs: 0, md: 1 },
                     background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%)",
                     position: "relative",
                     overflow: "hidden",
@@ -178,7 +178,7 @@ function HomeComponent() {
                                     sx={{
                                         height: 1,
                                         background: "rgba(148, 163, 184, 0.2)",
-                                        my: 0.5,
+                                        my: 0,
                                     }}
                                 />
 
