@@ -52,8 +52,6 @@ export default function Authentication() {
   const [passwordsMatch, setPasswordsMatch] = React.useState(false);
 
   const [formState, setFormState] = React.useState(0);
-  // Track registration request progress to disable submit button
-  const [registerInProgress, setRegisterInProgress] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const loginInProgressRef = React.useRef(false);
   const router = useNavigate();
@@ -243,11 +241,8 @@ export default function Authentication() {
           return;
         }
 
-        // Initiate registration
-        setRegisterInProgress(true);
         let result = await handleRegister(name, email, username, password, agreedToTerms);
         console.log(result);
-        // Show verification UI (resend button with timer)
         setShowResend(true);
         setResendDisabled(true);
         setTimer(30);
@@ -255,8 +250,8 @@ export default function Authentication() {
         setOpen(true);
         setError("");
         setAgreedToTerms(false);
-        setRegisterInProgress(false);
-        // Do NOT switch back to login; stay on verification state (formState 1)
+        // Stay in verification state (formState = 1) after successful registration
+        // Do not switch back to login form
       } else if (formState === 2) { // Forgot Password
         let result = await handleForgotPassword(email);
         console.log(result);
@@ -370,7 +365,7 @@ export default function Authentication() {
               </Typography>
 
               {/* Tab Buttons */}
-              <Box sx={{ display: "flex", gap: 1, width: "100%", mb: 1.5 }}>
+                <Box sx={{ display: "flex", gap: 1, width: "100%", mb: 1.5 }}>
                 <Button
                   variant={formState === 0 ? "contained" : "outlined"}
                   onClick={() => switchFormState(0)}
@@ -410,8 +405,8 @@ export default function Authentication() {
 
             {/* Form Section - Input Fields Only */}
             <Box component="form" noValidate sx={
-              (formState === 1)
-                ? { display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "flex-start", gap: 1, mb: 2 }
+                (formState === 1)
+                  ? { display: "grid", gridTemplateColumns: "1fr 1fr", alignItems: "flex-start", gap: 1, mb: 2 }
                 : { display: "flex", flexDirection: "column", gap: 2, alignItems: "center", mb: 3 }
             }>
 
@@ -427,29 +422,29 @@ export default function Authentication() {
                     autoFocus
                     onChange={(e) => setName(e.target.value)}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: { xs: 38, sm: 40 },
-                        padding: 0,
-                        color: "#f8fafc",
-                        "& fieldset": {
-                          borderColor: "rgba(148, 163, 184, 0.3)",
+                        "& .MuiOutlinedInput-root": {
+                          height: { xs: 38, sm: 40 },
+                          padding: 0,
+                          color: "#f8fafc",
+                          "& fieldset": {
+                            borderColor: "rgba(148, 163, 184, 0.3)",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: "rgba(99, 102, 241, 0.5)",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#6366f1",
+                            boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                          },
                         },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(99, 102, 241, 0.5)",
+                        "& .MuiOutlinedInput-input": {
+                          padding: { xs: "9px 12px", sm: "10px 14px" },
+                          boxSizing: "border-box",
                         },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#6366f1",
-                          boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                        "& .MuiOutlinedInput-input::placeholder": {
+                          color: "rgba(148, 163, 184, 0.6)",
+                          opacity: 1,
                         },
-                      },
-                      "& .MuiOutlinedInput-input": {
-                        padding: { xs: "9px 12px", sm: "10px 14px" },
-                        boxSizing: "border-box",
-                      },
-                      "& .MuiOutlinedInput-input::placeholder": {
-                        color: "rgba(148, 163, 184, 0.6)",
-                        opacity: 1,
-                      },
                     }}
                   />
                 </Box>
@@ -469,8 +464,8 @@ export default function Authentication() {
                       if (formState === 1) validateUsername(e.target.value);
                     }}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 40,
+                        "& .MuiOutlinedInput-root": {
+                          height: 40,
                         padding: "12px 14px",
                         color: "#f8fafc",
                         "& fieldset": {
@@ -677,8 +672,8 @@ export default function Authentication() {
                       ),
                     }}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 40,
+                    "& .MuiOutlinedInput-root": {
+                      height: 40,
                         padding: "12px 14px",
                         color: "#f8fafc",
                         "& fieldset": {
@@ -722,8 +717,8 @@ export default function Authentication() {
                       ),
                     }}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: 40,
+                    "& .MuiOutlinedInput-root": {
+                      height: 40,
                         padding: "12px 14px",
                         color: "#f8fafc",
                         "& fieldset": {
@@ -804,29 +799,29 @@ export default function Authentication() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        height: { xs: 38, sm: 40 },
-                        padding: 0,
-                        color: "#f8fafc",
-                        "& fieldset": {
-                          borderColor: "rgba(148, 163, 184, 0.3)",
+                        "& .MuiOutlinedInput-root": {
+                          height: { xs: 38, sm: 40 },
+                          padding: 0,
+                          color: "#f8fafc",
+                          "& fieldset": {
+                            borderColor: "rgba(148, 163, 184, 0.3)",
+                          },
+                          "&:hover fieldset": {
+                            borderColor: "rgba(99, 102, 241, 0.5)",
+                          },
+                          "&.Mui-focused fieldset": {
+                            borderColor: "#6366f1",
+                            boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                          },
                         },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(99, 102, 241, 0.5)",
+                        "& .MuiOutlinedInput-input": {
+                          padding: { xs: "9px 12px", sm: "10px 14px" },
+                          boxSizing: "border-box",
                         },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#6366f1",
-                          boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                        "& .MuiOutlinedInput-input::placeholder": {
+                          color: "rgba(148, 163, 184, 0.6)",
+                          opacity: 1,
                         },
-                      },
-                      "& .MuiOutlinedInput-input": {
-                        padding: { xs: "9px 12px", sm: "10px 14px" },
-                        boxSizing: "border-box",
-                      },
-                      "& .MuiOutlinedInput-input::placeholder": {
-                        color: "rgba(148, 163, 184, 0.6)",
-                        opacity: 1,
-                      },
                     }}
                   />
                 </Box>
@@ -891,8 +886,7 @@ export default function Authentication() {
                     !email ||
                     !isPasswordValid() ||
                     !passwordsMatch ||
-                    !agreedToTerms ||
-                    registerInProgress
+                    !agreedToTerms
                   )) ||
                   (formState === 2 && (!email || (showResend && resendDisabled)))
                 }
