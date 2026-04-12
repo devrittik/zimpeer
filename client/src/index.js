@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import theme from "./theme/theme";
 
@@ -14,6 +15,7 @@ root.render(
       <CssBaseline />
       <App />
       <Analytics />
+      <SpeedInsights />
     </ThemeProvider>
   </React.StrictMode>
 );
