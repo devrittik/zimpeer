@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 const CLIENT_URL = process.env.CLIENT_URL;
 const logoUrl = `${CLIENT_URL}/assets/logo/logo-dark.png`;
 
-const sendVerificationEmail = async (name, email, token) => {
+const sendVerificationEmail = async (name, email, username, token) => {
 
   const link = `${CLIENT_URL}/verify?token=${token}`;
 
@@ -34,7 +34,7 @@ const sendVerificationEmail = async (name, email, token) => {
                   <td style="padding:28px 32px 18px;text-align:center;background:#071028;">
                     <img src="${logoUrl}" alt="Zimpeer" width="160" style="display:block;margin:0 auto 14px auto;max-width:90%;height:auto;">
                     <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Welcome to Zimpeer, ${name}</h1>
-                    <p style="margin:12px 0 0;color:#a9b4cc;font-size:14px;">Please verify your email to activate your account</p>
+                    <p style="margin:12px 0 0;color:#a9b4cc;font-size:14px;">Please verify your email to activate your account : @${username}</p>
                   </td>
                 </tr>
 
@@ -71,7 +71,7 @@ const sendVerificationEmail = async (name, email, token) => {
   });
 };
 
-const sendResetPWEmail = async (name, email, token) => {
+const sendResetPWEmail = async (name, email, username, token) => {
   const link = `${CLIENT_URL}/reset-password?token=${token}`;
 
   await transporter.sendMail({
@@ -88,7 +88,7 @@ const sendResetPWEmail = async (name, email, token) => {
                   <td style="padding:28px 32px 18px;text-align:center;background:#071028;">
                     <img src="${logoUrl}" alt="Zimpeer" width="160" style="display:block;margin:0 auto 14px auto;max-width:90%;height:auto;">
                     <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Reset your password</h1>
-                    <p style="margin:12px 0 0;color:#a9b4cc;font-size:14px;">Hi ${name || 'there'}, use the button below to set a new password</p>
+                    <p style="margin:12px 0 0;color:#a9b4cc;font-size:14px;">Hi ${name || 'there'} (@${username}), use the button below to set a new password</p>
                   </td>
                 </tr>
 

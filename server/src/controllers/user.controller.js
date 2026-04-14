@@ -110,7 +110,7 @@ const register = async (req, res) => {
 
         await newUser.save();
 
-        await sendVerificationEmail(name, email, verificationToken);
+        await sendVerificationEmail(name, email, username, verificationToken);
 
         return res.status(httpStatus.CREATED).json({ message: "Verify your mail" });
 
@@ -152,7 +152,7 @@ const resendVerification = async (req, res) => {
     user.verificationToken = token;
     user.verificationTokenExpires = Date.now() + 10 * 60 * 1000;
 
-    await sendVerificationEmail(user.name, email, token);
+    await sendVerificationEmail(user.name, email, user.username, token);
 
     user.lastVerificationSentAt = new Date();
     await user.save();
@@ -174,6 +174,7 @@ const verifyUser = async (req, res) => {
 
   user.isVerified = true;
   user.verificationToken = null;
+  user.verificationTokenExpires = null;
 
   await user.save();
 
@@ -238,7 +239,7 @@ const forgotPW = async (req,res) => {
   user.resetPasswordToken = token;
   user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
   
-  await sendResetPWEmail(user.name, email, token);
+  await sendResetPWEmail(user.name, email, user.username, token);
   user.resetPasswordRequestedAt = new Date();
   
   await user.save();
@@ -269,8 +270,14 @@ const resetPW = async (req,res) => {
 
     user.password = await bcrypt.hash(newPassword, 10);
 
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+
+    if (!user.isVerified) {
+      user.isVerified = true;
+      user.verificationToken = null;
+      user.verificationTokenExpires = null;
+    }
 
     await user.save();
 

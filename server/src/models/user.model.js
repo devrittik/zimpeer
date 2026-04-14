@@ -10,12 +10,12 @@ const userSchema = new Schema(
         token: { type: String, unique: true, sparse: true },
 
         isVerified: { type: Boolean, default: false },
-        verificationToken: { type: String },
-        verificationTokenExpires: { type: Date, required: true },
+        verificationToken: { type: String, default: null },
+        verificationTokenExpires: { type: Date, default: null },
         lastVerificationSentAt: Date,
 
-        resetPasswordToken: String,
-        resetPasswordExpires: Date,
+        resetPasswordToken: { type: String, default: null },
+        resetPasswordExpires: { type: Date, default: null },
         resetPasswordRequestedAt: Date
     }
 );
