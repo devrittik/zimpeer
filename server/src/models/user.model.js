@@ -7,7 +7,7 @@ const userSchema = new Schema(
         username: { type: String, required: true, unique: true },
         password: { type: String, required: true },
 
-        token: { type: String, unique: true },
+        token: { type: String, unique: true, sparse: true },
 
         isVerified: { type: Boolean, default: false },
         verificationToken: { type: String },
