@@ -172,14 +172,55 @@ export default function VideoMeet() {
         ctx.resume();
 
         return Object.assign(dst.stream.getAudioTracks()[0], { enabled: false });
-    }
+    };
 
     let black = ({ width = 640, height = 480 } = {}) => {
         let canvas = Object.assign(document.createElement("canvas"), { width, height });
         canvas.getContext('2d').fillRect(0, 0, width, height);
         let stream = canvas.captureStream();
         return Object.assign(stream.getVideoTracks()[0], { enabled: false });
-    }
+    };
+
+    // BIND LOCAL PREVIEW: Ensures video element is properly synced with stream
+    const bindLocalPreview = async (stream) => {
+        if (!localVideoRef.current) {
+            console.warn("bindLocalPreview: localVideoRef not mounted");
+            return false;
+        }
+
+        if (!stream) {
+            console.warn("bindLocalPreview: stream is null/undefined");
+            return false;
+        }
+
+        try {
+            // Assign stream to video element
+            localVideoRef.current.srcObject = stream;
+
+            // Ensure video track exists and is live
+            const videoTracks = stream.getVideoTracks();
+            if (videoTracks.length === 0) {
+                console.warn("bindLocalPreview: no video tracks in stream");
+                return false;
+            }
+
+            const videoTrack = videoTracks[0];
+            if (videoTrack.readyState !== "live") {
+                console.warn("bindLocalPreview: video track not live, state:", videoTrack.readyState);
+            }
+
+            // Play the video element
+            const playPromise = localVideoRef.current.play();
+            if (playPromise !== undefined) {
+                await playPromise;
+                console.log("bindLocalPreview: stream bound and playing");
+            }
+            return true;
+        } catch (err) {
+            console.error("bindLocalPreview error:", err);
+            return false;
+        }
+    };
 
     useEffect(() => {
         const silentAudioTrack = silence();
@@ -195,9 +236,8 @@ export default function VideoMeet() {
         audioTrackRef.current = silentAudioTrack;
         videoTrackRef.current = blackVideoTrack;
 
-        if (localVideoRef.current) {
-            localVideoRef.current.srcObject = fakeStream;
-        }
+        // Bind preview with new fake stream
+        bindLocalPreview(fakeStream);
 
         setVideoEnabled(false);
         setAudioEnabled(false);
@@ -219,8 +259,9 @@ export default function VideoMeet() {
     }, [user, tempName]);
 
     useEffect(() => {
-        if (!showPreview && localVideoRef.current && localStreamRef.current) {
-            localVideoRef.current.srcObject = localStreamRef.current;
+        if (!showPreview && localStreamRef.current) {
+            // Bind preview when exiting preview screen
+            bindLocalPreview(localStreamRef.current);
         }
     }, [showPreview]);
 
@@ -746,11 +787,8 @@ export default function VideoMeet() {
                 });
             }
 
-            // force refresh local preview
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = null;
-                localVideoRef.current.srcObject = localStreamRef.current;
-            }
+            // Bind preview with updated stream
+            await bindLocalPreview(localStreamRef.current);
 
             // Update UI for the specific track that was enabled
             if (isVideo) {
@@ -811,7 +849,8 @@ export default function VideoMeet() {
                 if (sender) sender.replaceTrack(screenTrack);
             });
 
-            localVideoRef.current.srcObject = screenStream;
+            // Bind preview with screen stream
+            await bindLocalPreview(screenStream);
             setIsScreenSharing(true);
             screenTrack.onended = stopScreenShare;
         } catch (err) {
@@ -831,7 +870,8 @@ export default function VideoMeet() {
             }
         });
 
-        localVideoRef.current.srcObject = localStreamRef.current;
+        // Bind preview back to local camera stream
+        bindLocalPreview(localStreamRef.current);
 
         screenTrackRef.current?.stop();
         screenTrackRef.current = null;
