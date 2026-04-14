@@ -181,7 +181,7 @@ export default function VideoMeet() {
         return Object.assign(stream.getVideoTracks()[0], { enabled: false });
     };
 
-    // BIND LOCAL PREVIEW: Ensures video element is properly synced with stream
+    // BIND LOCAL PREVIEW
     const bindLocalPreview = async (stream) => {
         if (!localVideoRef.current) {
             console.warn("bindLocalPreview: localVideoRef not mounted");
@@ -838,7 +838,6 @@ export default function VideoMeet() {
         }
 
         try {
-            // On mobile we only request video; audio is not needed for screen share
             const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             const screenTrack = screenStream.getVideoTracks()[0];
 
@@ -996,7 +995,6 @@ export default function VideoMeet() {
     };
 
     const handleShareMenuOpen = (event) => {
-        // toggle behavior: if already open, close it
         if (shareMenuAnchor) {
             setShareMenuAnchor(null);
             return;
@@ -1021,8 +1019,8 @@ export default function VideoMeet() {
 
     const handleShareSocial = (platform) => {
         const meetingLink = `${window.location.origin}/room/${roomId}`;
-        const shortText = `Join a Zimpeer meeting\nMeeting ID: ${roomId}`;
-        const inviteText = `${shortText}\n${meetingLink}`;
+        const shortText = generateInviteText(roomId, meetingLink);
+        const inviteText = `${shortText}\n\n${window.location.origin}`;
 
         const encodedText = encodeURIComponent(shortText);
         const encodedInviteText = encodeURIComponent(inviteText);

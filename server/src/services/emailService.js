@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const CLIENT_URL = process.env.CLIENT_URL;
-const logoUrl = `${CLIENT_URL}/public/assets/logo/logo-dark.png`;
+const logoUrl = `${CLIENT_URL}/assets/logo/logo-dark.png`;
 
 const sendVerificationEmail = async (name, email, token) => {
 
