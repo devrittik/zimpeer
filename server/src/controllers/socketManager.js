@@ -189,6 +189,8 @@ export const connectToSocket = (server) => {
         });
 
         socket.on("signal", (toId, message) => {
+            const data = JSON.parse(message);
+            console.log(`[RELAY] Signal from ${socket.id} to ${toId}, type=${data.sdp?.type || 'ice'}`);
             io.to(toId).emit("signal", socket.id, message);
         });
 

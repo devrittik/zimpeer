@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
-import { Alert, Badge, Box, IconButton, Snackbar, Tooltip, Typography, Menu, Divider} from "@mui/material";
+import { Alert, Badge, Box, IconButton, Snackbar, Tooltip, Typography, Menu, Divider } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import MicIcon from "@mui/icons-material/Mic";
@@ -262,14 +262,10 @@ export default function VideoMeet() {
     const createPeerConnection = (remoteId) => {
         const pc = new RTCPeerConnection(ICE_CONFIG);
 
-        // DEBUG
         console.log("Creating PC for:", remoteId);
-        console.log("screenTrackRef.current:", screenTrackRef.current);
-        console.log("videoTrackRef.current:", videoTrackRef.current);
-        console.log("isScreenSharing:", isScreenSharing);
 
         const currentVideoTrack = screenTrackRef.current || videoTrackRef.current;
-        console.log("Using track:", currentVideoTrack);
+        console.log("Using video track:", currentVideoTrack?.enabled);
 
         if (currentVideoTrack) {
             pc.addTrack(currentVideoTrack, localStreamRef.current);
@@ -673,10 +669,9 @@ export default function VideoMeet() {
         }
 
         const trackRef = isVideo ? videoTrackRef : audioTrackRef;
-
         const hasReal = isVideo ? hasRealVideo : hasRealAudio;
 
-        // already real track
+        // already real track - just enable it
         if (hasReal) {
             trackRef.current.enabled = true;
             isVideo ? setVideoEnabled(true) : setAudioEnabled(true);
@@ -684,53 +679,88 @@ export default function VideoMeet() {
         }
 
         try {
+            // CRITICAL FIX: Always request BOTH audio and video together
+            // Mobile devices fail with audio-only or video-only requests
+            // This allows independent control of audio/video while maintaining mobile compatibility
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: isVideo,
-                audio: !isVideo
+                video: true,
+                audio: true
             });
 
-            const newTrack = isVideo
-                ? stream.getVideoTracks()[0]
-                : stream.getAudioTracks()[0];
+            const newVideoTrack = stream.getVideoTracks()[0];
+            const newAudioTrack = stream.getAudioTracks()[0];
 
             if (!localStreamRef.current) {
                 localStreamRef.current = new MediaStream();
             }
 
-            // remove fake track
+            // Remove old fake track for this media kind
             const oldTrack = trackRef.current;
-            if (oldTrack) {
-                localStreamRef.current.removeTrack(oldTrack);
+            if (oldTrack && !oldTrack.enabled) {
+                try {
+                    localStreamRef.current.removeTrack(oldTrack);
+                } catch (e) {
+                    // Track might not be in stream
+                }
                 oldTrack.stop();
             }
 
-            localStreamRef.current.addTrack(newTrack);
-
-            Object.values(connectionsRef.current).forEach(pc => {
-                const sender = pc.getSenders().find(s => s.track && s.track.kind === kind);
-
-                if (sender) {
-                    sender.replaceTrack(newTrack);
-                } else {
-                    pc.addTrack(newTrack, localStreamRef.current);
+            // Add BOTH tracks to local stream, but only enable the one requested
+            if (newVideoTrack) {
+                if (!localStreamRef.current.getTracks().find(t => t.kind === 'video' && t.enabled)) {
+                    localStreamRef.current.addTrack(newVideoTrack);
                 }
-            });
+                videoTrackRef.current = newVideoTrack;
+                // Only enable if user clicked video button
+                videoTrackRef.current.enabled = isVideo;
+                setHasRealVideo(true);
 
-            trackRef.current = newTrack;
+                // Update peer connections with video track
+                Object.values(connectionsRef.current).forEach(pc => {
+                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) {
+                        sender.replaceTrack(newVideoTrack);
+                    } else {
+                        pc.addTrack(newVideoTrack, localStreamRef.current);
+                    }
+                });
+            }
 
-            // force refresh
-            localVideoRef.current.srcObject = null;
-            localVideoRef.current.srcObject = localStreamRef.current;
+            if (newAudioTrack) {
+                if (!localStreamRef.current.getTracks().find(t => t.kind === 'audio' && t.enabled)) {
+                    localStreamRef.current.addTrack(newAudioTrack);
+                }
+                audioTrackRef.current = newAudioTrack;
+                // Only enable if user clicked audio button
+                audioTrackRef.current.enabled = !isVideo;
+                setHasRealAudio(true);
 
+                // Update peer connections with audio track
+                Object.values(connectionsRef.current).forEach(pc => {
+                    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+                    if (sender) {
+                        sender.replaceTrack(newAudioTrack);
+                    } else {
+                        pc.addTrack(newAudioTrack, localStreamRef.current);
+                    }
+                });
+            }
+
+            // force refresh local preview
+            if (localVideoRef.current) {
+                localVideoRef.current.srcObject = null;
+                localVideoRef.current.srcObject = localStreamRef.current;
+            }
+
+            // Update UI for the specific track that was enabled
             if (isVideo) {
                 setVideoEnabled(true);
-                setHasRealVideo(true);
             } else {
                 setAudioEnabled(true);
-                setHasRealAudio(true);
             }
 
         } catch (err) {
+            console.error(`Error enabling ${kind}:`, err);
             showToast(`${kind} permission required`, "error");
         }
     };
@@ -744,6 +774,8 @@ export default function VideoMeet() {
             trackRef.current.enabled = false;
         }
 
+        // Don't need to update peer connections for disable - just setting enabled flag
+        // Receivers will see the muted track in their ontrack handler
         isVideo ? setVideoEnabled(false) : setAudioEnabled(false);
     };
 
@@ -1026,845 +1058,845 @@ export default function VideoMeet() {
                 <title>Meeting Room | Zimpeer</title>
                 <meta name="robots" content="noindex,nofollow" />
             </Helmet>
-        <div>
-            {showPreview ? (
-                <Box
-                    sx={{
-                        minHeight: "100dvh",
-                        display: "flex",
-                        flexDirection: "column",
-                        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%)",
-                        position: "relative",
-                        overflowX: "hidden",
-                        "&::before": {
-                            content: '""',
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: "radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)",
-                            pointerEvents: "none",
-                        },
-                    }}
-                >
-                    <Navbar />
-
-                    {/* Guest Banner */}
-                    {user.isGuest && (
-                        <Box
-                            sx={{
-                                position: { xs: "relative", sm: "absolute" },
-                                top: { sm: 80, md: 88 },
-                                left: { sm: "50%" },
-                                transform: { sm: "translateX(-50%)" },
-                                alignSelf: "center",
-                                background: "rgba(99, 102, 241, 0.1)",
-                                backdropFilter: "blur(12px)",
-                                border: "1px solid rgba(99, 102, 241, 0.2)",
-                                borderRadius: "999px",
-                                px: { xs: 1.75, sm: 2.5, md: 3 },
-                                py: { xs: 1, sm: 1.25, md: 1.5 },
-                                color: "#f8fafc",
-                                fontSize: { xs: "0.75rem", sm: "0.82rem", md: "0.875rem" },
-                                textAlign: "center",
-                                mt: { xs: 1.5, sm: 0 },
-                                maxWidth: { xs: "calc(100% - 24px)", sm: "unset" },
-                                boxShadow: "0 8px 32px rgba(99, 102, 241, 0.15)",
-                                zIndex: 100,
-                            }}
-                        >
-                            You're in <strong>Guest mode</strong> • Sign in for full features
-                        </Box>
-                    )}
-
-                    {/* Lobby Content */}
+            <div>
+                {showPreview ? (
                     <Box
                         sx={{
+                            minHeight: "100dvh",
                             display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexDirection: { xs: "column", md: "row" },
-                            gap: { xs: 2, sm: 2.5, md: 4, lg: 6 },
-                            flex: 1,
-                            width: "100%",
-                            maxWidth: 1180,
-                            mx: "auto",
-                            px: { xs: 1.5, sm: 2.5, md: 4 },
-                            py: { xs: 1.5, sm: 2.5, md: 4 },
-                            flexWrap: { xs: "nowrap", md: "nowrap" },
+                            flexDirection: "column",
+                            background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%)",
                             position: "relative",
-                            zIndex: 1,
+                            overflowX: "hidden",
+                            "&::before": {
+                                content: '""',
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: "radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)",
+                                pointerEvents: "none",
+                            },
                         }}
                     >
-                        {/* Form Card */}
-                        <Card>
+                        <Navbar />
+
+                        {/* Guest Banner */}
+                        {user.isGuest && (
                             <Box
-                                component="form"
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    connect();
-                                }}
                                 sx={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: { xs: 2, sm: 2.5, md: 3 },
-                                    width: "100%",
-                                    minWidth: 0,
-                                    maxWidth: 400,
+                                    position: { xs: "relative", sm: "absolute" },
+                                    top: { sm: 80, md: 88 },
+                                    left: { sm: "50%" },
+                                    transform: { sm: "translateX(-50%)" },
+                                    alignSelf: "center",
+                                    background: "rgba(99, 102, 241, 0.1)",
+                                    backdropFilter: "blur(12px)",
+                                    border: "1px solid rgba(99, 102, 241, 0.2)",
+                                    borderRadius: "999px",
+                                    px: { xs: 1.75, sm: 2.5, md: 3 },
+                                    py: { xs: 1, sm: 1.25, md: 1.5 },
+                                    color: "#f8fafc",
+                                    fontSize: { xs: "0.75rem", sm: "0.82rem", md: "0.875rem" },
+                                    textAlign: "center",
+                                    mt: { xs: 1.5, sm: 0 },
+                                    maxWidth: { xs: "calc(100% - 24px)", sm: "unset" },
+                                    boxShadow: "0 8px 32px rgba(99, 102, 241, 0.15)",
+                                    zIndex: 100,
                                 }}
                             >
-                                {/* Title */}
-                                <Typography
-                                    variant="h5"
-                                    sx={{
-                                        fontWeight: 700,
-                                        textAlign: "center",
-                                        background: "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
-                                        backgroundClip: "text",
-                                        WebkitBackgroundClip: "text",
-                                        WebkitTextFillColor: "transparent",
-                                        fontSize: { xs: "1.35rem", sm: "1.6rem" },
-                                        mb: { xs: 0.5, sm: 1 },
-                                    }}
-                                >
-                                    Enter Lobby
-                                </Typography>
+                                You're in <strong>Guest mode</strong> • Sign in for full features
+                            </Box>
+                        )}
 
-                                {/* Display Name Field */}
-                                {user.isGuest ? (
-                                    <Input
-                                        label="Display Name"
-                                        value={tempName}
-                                        required
-                                        onChange={(e) => setTempName(e.target.value)}
-                                        autoFocus
-                                        placeholder="Enter your name"
-                                        sx={{
-                                            mt: 0,
-                                            mb: 0,
-                                            "& .MuiOutlinedInput-root": {
-                                                color: "#f8fafc",
-                                                minHeight: { xs: 48, sm: 54, md: 58 },
-                                                "& fieldset": {
-                                                    borderColor: "rgba(148, 163, 184, 0.3)",
-                                                },
-                                                "&:hover fieldset": {
-                                                    borderColor: "rgba(99, 102, 241, 0.5)",
-                                                },
-                                                "&.Mui-focused fieldset": {
-                                                    borderColor: "#6366f1",
-                                                    boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
-                                                },
-                                            },
-                                            "& .MuiInputBase-input": {
-                                                py: { xs: 1.45, sm: 1.65 },
-                                                fontSize: { xs: "0.95rem", sm: "1rem" },
-                                            },
-                                            "& .MuiInputLabel-root": {
-                                                fontSize: { xs: "0.9rem", sm: "1rem" },
-                                            },
-                                        }}
-                                    />
-                                ) : (
-                                    <Box sx={{ textAlign: "center" }}>
-                                        <Typography
-                                            sx={{
-                                                color: "#94a3b8",
-                                                fontSize: "0.875rem",
-                                                mb: 1,
-                                            }}
-                                        >
-                                            Joining as
-                                        </Typography>
-                                        <Typography
-                                            sx={{
-                                                color: "#f8fafc",
-                                                fontWeight: 600,
-                                                fontSize: "1rem",
-                                            }}
-                                        >
-                                            {displayName}
-                                        </Typography>
-                                    </Box>
-                                )}
-
-                                {/* Join Button */}
-                                <Button
-                                    type="submit"
-                                    disabled={user.isGuest && !tempName.trim()}
-                                    sx={{
-                                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                                        py: { xs: 1, sm: 1.15, md: 1.3 },
-                                        minHeight: { xs: 46, sm: 50, md: 54 },
-                                        fontSize: { xs: "0.95rem", sm: "1rem" },
-                                        boxShadow: "0 8px 16px rgba(99, 102, 241, 0.3)",
-                                        "&:hover": {
-                                            boxShadow: "0 12px 24px rgba(99, 102, 241, 0.4)",
-                                            transform: "translateY(-2px)",
-                                        },
-                                        "&:disabled": {
-                                            background: "rgba(99, 102, 241, 0.4)",
-                                            color: "#cbd5e1",
-                                            boxShadow: "none",
-                                        },
-                                        transition: "all 0.2s ease",
-                                    }}
-                                >
-                                    {user.isGuest ? "Join as Guest" : "Join Meeting"}
-                                </Button>
-
-                                {/* Copy and Share Buttons */}
+                        {/* Lobby Content */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: { xs: "column", md: "row" },
+                                gap: { xs: 2, sm: 2.5, md: 4, lg: 6 },
+                                flex: 1,
+                                width: "100%",
+                                maxWidth: 1180,
+                                mx: "auto",
+                                px: { xs: 1.5, sm: 2.5, md: 4 },
+                                py: { xs: 1.5, sm: 2.5, md: 4 },
+                                flexWrap: { xs: "nowrap", md: "nowrap" },
+                                position: "relative",
+                                zIndex: 1,
+                            }}
+                        >
+                            {/* Form Card */}
+                            <Card>
                                 <Box
+                                    component="form"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        connect();
+                                    }}
                                     sx={{
                                         display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                        gap: { xs: 1.25, sm: 1.5, md: 2 },
-                                        mt: { xs: 0.5, sm: 1.25, md: 2 },
+                                        flexDirection: "column",
+                                        gap: { xs: 2, sm: 2.5, md: 3 },
+                                        width: "100%",
+                                        minWidth: 0,
+                                        maxWidth: 400,
                                     }}
                                 >
-                                    {/* Copy URL Button */}
-                                    <Tooltip title="Copy room URL to clipboard">
-                                        <IconButton
-                                            onClick={handleCopyRoomUrl}
+                                    {/* Title */}
+                                    <Typography
+                                        variant="h5"
+                                        sx={{
+                                            fontWeight: 700,
+                                            textAlign: "center",
+                                            background: "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
+                                            backgroundClip: "text",
+                                            WebkitBackgroundClip: "text",
+                                            WebkitTextFillColor: "transparent",
+                                            fontSize: { xs: "1.35rem", sm: "1.6rem" },
+                                            mb: { xs: 0.5, sm: 1 },
+                                        }}
+                                    >
+                                        Enter Lobby
+                                    </Typography>
+
+                                    {/* Display Name Field */}
+                                    {user.isGuest ? (
+                                        <Input
+                                            label="Display Name"
+                                            value={tempName}
+                                            required
+                                            onChange={(e) => setTempName(e.target.value)}
+                                            autoFocus
+                                            placeholder="Enter your name"
                                             sx={{
-                                                color: "#f8fafc",
-                                                backgroundColor: "rgba(99, 102, 241, 0.2)",
-                                                border: "1px solid rgba(99, 102, 241, 0.3)",
-                                                borderRadius: 1.5,
-                                                width: { xs: 42, sm: 46, md: 48 },
-                                                height: { xs: 42, sm: 46, md: 48 },
-                                                padding: { xs: 0.85, sm: 1, md: 1.2 },
-                                                "&:hover": {
-                                                    backgroundColor: "rgba(99, 102, 241, 0.3)",
-                                                    transform: "scale(1.08)",
+                                                mt: 0,
+                                                mb: 0,
+                                                "& .MuiOutlinedInput-root": {
+                                                    color: "#f8fafc",
+                                                    minHeight: { xs: 48, sm: 54, md: 58 },
+                                                    "& fieldset": {
+                                                        borderColor: "rgba(148, 163, 184, 0.3)",
+                                                    },
+                                                    "&:hover fieldset": {
+                                                        borderColor: "rgba(99, 102, 241, 0.5)",
+                                                    },
+                                                    "&.Mui-focused fieldset": {
+                                                        borderColor: "#6366f1",
+                                                        boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.1)",
+                                                    },
                                                 },
-                                                transition: "all 0.2s ease",
+                                                "& .MuiInputBase-input": {
+                                                    py: { xs: 1.45, sm: 1.65 },
+                                                    fontSize: { xs: "0.95rem", sm: "1rem" },
+                                                },
+                                                "& .MuiInputLabel-root": {
+                                                    fontSize: { xs: "0.9rem", sm: "1rem" },
+                                                },
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box sx={{ textAlign: "center" }}>
+                                            <Typography
+                                                sx={{
+                                                    color: "#94a3b8",
+                                                    fontSize: "0.875rem",
+                                                    mb: 1,
+                                                }}
+                                            >
+                                                Joining as
+                                            </Typography>
+                                            <Typography
+                                                sx={{
+                                                    color: "#f8fafc",
+                                                    fontWeight: 600,
+                                                    fontSize: "1rem",
+                                                }}
+                                            >
+                                                {displayName}
+                                            </Typography>
+                                        </Box>
+                                    )}
+
+                                    {/* Join Button */}
+                                    <Button
+                                        type="submit"
+                                        disabled={user.isGuest && !tempName.trim()}
+                                        sx={{
+                                            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                                            py: { xs: 1, sm: 1.15, md: 1.3 },
+                                            minHeight: { xs: 46, sm: 50, md: 54 },
+                                            fontSize: { xs: "0.95rem", sm: "1rem" },
+                                            boxShadow: "0 8px 16px rgba(99, 102, 241, 0.3)",
+                                            "&:hover": {
+                                                boxShadow: "0 12px 24px rgba(99, 102, 241, 0.4)",
+                                                transform: "translateY(-2px)",
+                                            },
+                                            "&:disabled": {
+                                                background: "rgba(99, 102, 241, 0.4)",
+                                                color: "#cbd5e1",
+                                                boxShadow: "none",
+                                            },
+                                            transition: "all 0.2s ease",
+                                        }}
+                                    >
+                                        {user.isGuest ? "Join as Guest" : "Join Meeting"}
+                                    </Button>
+
+                                    {/* Copy and Share Buttons */}
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            alignItems: "center",
+                                            gap: { xs: 1.25, sm: 1.5, md: 2 },
+                                            mt: { xs: 0.5, sm: 1.25, md: 2 },
+                                        }}
+                                    >
+                                        {/* Copy URL Button */}
+                                        <Tooltip title="Copy room URL to clipboard">
+                                            <IconButton
+                                                onClick={handleCopyRoomUrl}
+                                                sx={{
+                                                    color: "#f8fafc",
+                                                    backgroundColor: "rgba(99, 102, 241, 0.2)",
+                                                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                                                    borderRadius: 1.5,
+                                                    width: { xs: 42, sm: 46, md: 48 },
+                                                    height: { xs: 42, sm: 46, md: 48 },
+                                                    padding: { xs: 0.85, sm: 1, md: 1.2 },
+                                                    "&:hover": {
+                                                        backgroundColor: "rgba(99, 102, 241, 0.3)",
+                                                        transform: "scale(1.08)",
+                                                    },
+                                                    transition: "all 0.2s ease",
+                                                }}
+                                            >
+                                                <ContentCopyIcon sx={{ fontSize: { xs: "1.05rem", sm: "1.15rem", md: "1.25rem" } }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Share Button */}
+                                        <Tooltip title="Share meeting invite">
+                                            <IconButton
+                                                onClick={handleShareMenuOpen}
+                                                sx={{
+                                                    color: "#f8fafc",
+                                                    backgroundColor: "rgba(139, 92, 246, 0.2)",
+                                                    border: "1px solid rgba(139, 92, 246, 0.3)",
+                                                    borderRadius: 1.5,
+                                                    width: { xs: 42, sm: 46, md: 48 },
+                                                    height: { xs: 42, sm: 46, md: 48 },
+                                                    padding: { xs: 0.85, sm: 1, md: 1.2 },
+                                                    "&:hover": {
+                                                        backgroundColor: "rgba(139, 92, 246, 0.3)",
+                                                        transform: "scale(1.08)",
+                                                    },
+                                                    transition: "all 0.2s ease",
+                                                }}
+                                            >
+                                                <ShareIcon sx={{ fontSize: { xs: "1.05rem", sm: "1.15rem", md: "1.25rem" } }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </Box>
+
+                                    {/* Share Menu */}
+                                    <Menu
+                                        anchorEl={shareMenuAnchor}
+                                        open={Boolean(shareMenuAnchor)}
+                                        onClose={handleShareMenuClose}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                                        disableScrollLock={true}
+                                        MenuListProps={{
+                                            sx: {
+                                                display: 'flex',
+                                                gap: 1,
+                                                alignItems: 'center',
+                                                p: 1,
+                                                flexWrap: 'nowrap',
+                                                overflowX: 'auto',
+                                                WebkitOverflowScrolling: 'touch',
+                                            }
+                                        }}
+                                        PaperProps={{
+                                            sx: {
+                                                backgroundColor: "rgba(15, 23, 42, 0.95)",
+                                                backdropFilter: "blur(12px)",
+                                                border: "1px solid rgba(99, 102, 241, 0.2)",
+                                                borderRadius: 2,
+                                                boxShadow: "0 12px 40px rgba(99, 102, 241, 0.25)",
+                                                zIndex: 10000,
+                                                maxWidth: "min(92vw, 640px)",
+                                            }
+                                        }}
+                                    >
+                                        {/* Copy Invite Text Button */}
+                                        <Tooltip title="Copy invite text">
+                                            <IconButton
+                                                onClick={handleCopyInviteText}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#f8fafc",
+                                                    backgroundColor: "rgba(99, 102, 241, 0.15)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": {
+                                                        backgroundColor: "rgba(99, 102, 241, 0.28)",
+                                                    },
+                                                }}
+                                            >
+                                                <ContentCopyIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        <Divider
+                                            orientation="vertical"
+                                            flexItem
+                                            sx={{ borderColor: "rgba(99, 102, 241, 0.2)" }}
+                                        />
+
+                                        {/* Facebook Share Button */}
+                                        <Tooltip title="Share on Facebook">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("facebook")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#1877F2",
+                                                    backgroundColor: "rgba(24, 119, 242, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(24, 119, 242, 0.18)" },
+                                                }}
+                                            >
+                                                <FacebookIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Twitter Share Button */}
+                                        <Tooltip title="Share on Twitter">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("twitter")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#1DA1F2",
+                                                    backgroundColor: "rgba(29, 161, 242, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(29, 161, 242, 0.18)" },
+                                                }}
+                                            >
+                                                <XIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* LinkedIn Share Button */}
+                                        <Tooltip title="Share on LinkedIn">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("linkedin")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#0A66C2",
+                                                    backgroundColor: "rgba(10, 102, 194, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(10, 102, 194, 0.18)" },
+                                                }}
+                                            >
+                                                <LinkedInIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* WhatsApp Share Button */}
+                                        <Tooltip title="Share on WhatsApp">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("whatsapp")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#25D366",
+                                                    backgroundColor: "rgba(37, 211, 102, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(37, 211, 102, 0.18)" },
+                                                }}
+                                            >
+                                                <WhatsAppIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Email Share Button */}
+                                        <Tooltip title="Share via Email">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("email")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#EA4335",
+                                                    backgroundColor: "rgba(234, 67, 53, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(234, 67, 53, 0.18)" },
+                                                }}
+                                            >
+                                                <EmailIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Telegram Share Button */}
+                                        <Tooltip title="Share on Telegram">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("telegram")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#0088cc",
+                                                    backgroundColor: "rgba(0, 136, 204, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(0, 136, 204, 0.18)" },
+                                                }}
+                                            >
+                                                <TelegramIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Instagram Share Button */}
+                                        <Tooltip title="Share on Instagram">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("instagram")}
+                                                size="medium"
+                                                sx={{
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    background: "linear-gradient(45deg, #fd5949, #d6249f, #285AEB)",
+                                                    color: "white",
+                                                    "&:hover": { opacity: 0.95 },
+                                                }}
+                                            >
+                                                <InstagramIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Direct Message Button */}
+                                        <Tooltip title="Share via Direct Message">
+                                            <IconButton
+                                                onClick={() => handleShareSocial("dm")}
+                                                size="medium"
+                                                sx={{
+                                                    color: "#9CA3AF",
+                                                    backgroundColor: "rgba(156, 163, 175, 0.08)",
+                                                    width: 48,
+                                                    height: 48,
+                                                    p: 1,
+                                                    "&:hover": { backgroundColor: "rgba(156, 163, 175, 0.18)" },
+                                                }}
+                                            >
+                                                <ChatBubbleIcon sx={{ fontSize: "1.25rem" }} />
+                                            </IconButton>
+                                        </Tooltip>
+
+                                        {/* Close Button */}
+                                        <Divider
+                                            orientation="vertical"
+                                            flexItem
+                                            sx={{ borderColor: "rgba(99, 102, 241, 0.2)", my: 0 }}
+                                        />
+
+                                        <IconButton
+                                            onClick={handleShareMenuClose}
+                                            size="small"
+                                            sx={{
+                                                color: "#94a3b8",
+                                                backgroundColor: "rgba(99, 102, 241, 0.1)",
+                                                "&:hover": {
+                                                    backgroundColor: "rgba(99, 102, 241, 0.2)",
+                                                },
                                             }}
                                         >
-                                            <ContentCopyIcon sx={{ fontSize: { xs: "1.05rem", sm: "1.15rem", md: "1.25rem" } }} />
+                                            <CloseIcon sx={{ fontSize: "1rem" }} />
+                                        </IconButton>
+                                    </Menu>
+                                </Box>
+                            </Card>
+
+                            {/* Preview Video Card */}
+                            <Box
+                                sx={{
+                                    position: "relative",
+                                    width: "100%",
+                                    maxWidth: { xs: 400, md: 420 },
+                                    aspectRatio: "16 / 9",
+                                    borderRadius: 3,
+                                    overflow: "hidden",
+                                    border: "2px solid rgba(99, 102, 241, 0.3)",
+                                    boxShadow: "0 12px 40px rgba(99, 102, 241, 0.25)",
+                                    backgroundColor: "#1a1a1a",
+                                }}
+                            >
+                                <video
+                                    ref={localVideoRef}
+                                    autoPlay
+                                    muted
+                                    playsInline
+                                    style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                        transform: "scaleX(-1)",
+                                        backgroundColor: "#1a1a1a",
+                                    }}
+                                />
+
+                                {/* Preview Controls */}
+                                <Box
+                                    sx={{
+                                        position: "absolute",
+                                        bottom: { xs: 10, sm: 12 },
+                                        left: "50%",
+                                        transform: "translateX(-50%)",
+                                        display: "flex",
+                                        gap: { xs: 0.75, sm: 1 },
+                                        zIndex: 10,
+                                    }}
+                                >
+                                    <Tooltip title={videoEnabled ? "Turn off camera" : "Turn on camera"}>
+                                        <IconButton
+                                            onClick={() => toggleMedia("video")}
+                                            sx={{
+                                                color: "white",
+                                                backgroundColor: videoEnabled ? "rgba(99, 102, 241, 0.8)" : "rgba(239, 68, 68, 0.8)",
+                                                width: { xs: 40, sm: 44, md: 46 },
+                                                height: { xs: 40, sm: 44, md: 46 },
+                                                "&:hover": {
+                                                    backgroundColor: videoEnabled ? "rgba(99, 102, 241, 1)" : "rgba(239, 68, 68, 1)",
+                                                },
+                                                "& .MuiSvgIcon-root": {
+                                                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                                                },
+                                            }}
+                                        >
+                                            {videoEnabled ? <VideocamIcon /> : <VideocamOffIcon />}
                                         </IconButton>
                                     </Tooltip>
 
-                                    {/* Share Button */}
-                                    <Tooltip title="Share meeting invite">
+                                    <Tooltip title={audioEnabled ? "Mute microphone" : "Unmute microphone"}>
                                         <IconButton
-                                            onClick={handleShareMenuOpen}
+                                            onClick={() => toggleMedia("audio")}
                                             sx={{
-                                                color: "#f8fafc",
-                                                backgroundColor: "rgba(139, 92, 246, 0.2)",
-                                                border: "1px solid rgba(139, 92, 246, 0.3)",
-                                                borderRadius: 1.5,
-                                                width: { xs: 42, sm: 46, md: 48 },
-                                                height: { xs: 42, sm: 46, md: 48 },
-                                                padding: { xs: 0.85, sm: 1, md: 1.2 },
+                                                color: "white",
+                                                backgroundColor: audioEnabled ? "rgba(99, 102, 241, 0.8)" : "rgba(239, 68, 68, 0.8)",
+                                                width: { xs: 40, sm: 44, md: 46 },
+                                                height: { xs: 40, sm: 44, md: 46 },
                                                 "&:hover": {
-                                                    backgroundColor: "rgba(139, 92, 246, 0.3)",
-                                                    transform: "scale(1.08)",
+                                                    backgroundColor: audioEnabled ? "rgba(99, 102, 241, 1)" : "rgba(239, 68, 68, 1)",
                                                 },
-                                                transition: "all 0.2s ease",
+                                                "& .MuiSvgIcon-root": {
+                                                    fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                                                },
                                             }}
                                         >
-                                            <ShareIcon sx={{ fontSize: { xs: "1.05rem", sm: "1.15rem", md: "1.25rem" } }} />
+                                            {audioEnabled ? <MicIcon /> : <MicOffIcon />}
                                         </IconButton>
                                     </Tooltip>
                                 </Box>
-
-                                {/* Share Menu */}
-                                <Menu
-                                    anchorEl={shareMenuAnchor}
-                                    open={Boolean(shareMenuAnchor)}
-                                    onClose={handleShareMenuClose}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-                                    disableScrollLock={true}
-                                    MenuListProps={{
-                                        sx: {
-                                            display: 'flex',
-                                            gap: 1,
-                                            alignItems: 'center',
-                                            p: 1,
-                                            flexWrap: 'nowrap',
-                                            overflowX: 'auto',
-                                            WebkitOverflowScrolling: 'touch',
-                                        }
-                                    }}
-                                    PaperProps={{
-                                        sx: {
-                                            backgroundColor: "rgba(15, 23, 42, 0.95)",
-                                            backdropFilter: "blur(12px)",
-                                            border: "1px solid rgba(99, 102, 241, 0.2)",
-                                            borderRadius: 2,
-                                            boxShadow: "0 12px 40px rgba(99, 102, 241, 0.25)",
-                                            zIndex: 10000,
-                                            maxWidth: "min(92vw, 640px)",
-                                        }
-                                    }}
-                                >
-                                    {/* Copy Invite Text Button */}
-                                    <Tooltip title="Copy invite text">
-                                        <IconButton
-                                            onClick={handleCopyInviteText}
-                                            size="medium"
-                                            sx={{
-                                                color: "#f8fafc",
-                                                backgroundColor: "rgba(99, 102, 241, 0.15)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": {
-                                                    backgroundColor: "rgba(99, 102, 241, 0.28)",
-                                                },
-                                            }}
-                                        >
-                                            <ContentCopyIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    <Divider
-                                        orientation="vertical"
-                                        flexItem
-                                        sx={{ borderColor: "rgba(99, 102, 241, 0.2)" }}
-                                    />
-
-                                    {/* Facebook Share Button */}
-                                    <Tooltip title="Share on Facebook">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("facebook")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#1877F2",
-                                                backgroundColor: "rgba(24, 119, 242, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(24, 119, 242, 0.18)" },
-                                            }}
-                                        >
-                                            <FacebookIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* Twitter Share Button */}
-                                    <Tooltip title="Share on Twitter">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("twitter")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#1DA1F2",
-                                                backgroundColor: "rgba(29, 161, 242, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(29, 161, 242, 0.18)" },
-                                            }}
-                                        >
-                                            <XIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* LinkedIn Share Button */}
-                                    <Tooltip title="Share on LinkedIn">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("linkedin")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#0A66C2",
-                                                backgroundColor: "rgba(10, 102, 194, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(10, 102, 194, 0.18)" },
-                                            }}
-                                        >
-                                            <LinkedInIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* WhatsApp Share Button */}
-                                    <Tooltip title="Share on WhatsApp">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("whatsapp")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#25D366",
-                                                backgroundColor: "rgba(37, 211, 102, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(37, 211, 102, 0.18)" },
-                                            }}
-                                        >
-                                            <WhatsAppIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* Email Share Button */}
-                                    <Tooltip title="Share via Email">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("email")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#EA4335",
-                                                backgroundColor: "rgba(234, 67, 53, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(234, 67, 53, 0.18)" },
-                                            }}
-                                        >
-                                            <EmailIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* Telegram Share Button */}
-                                    <Tooltip title="Share on Telegram">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("telegram")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#0088cc",
-                                                backgroundColor: "rgba(0, 136, 204, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(0, 136, 204, 0.18)" },
-                                            }}
-                                        >
-                                            <TelegramIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* Instagram Share Button */}
-                                    <Tooltip title="Share on Instagram">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("instagram")}
-                                            size="medium"
-                                            sx={{
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                background: "linear-gradient(45deg, #fd5949, #d6249f, #285AEB)",
-                                                color: "white",
-                                                "&:hover": { opacity: 0.95 },
-                                            }}
-                                        >
-                                            <InstagramIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* Direct Message Button */}
-                                    <Tooltip title="Share via Direct Message">
-                                        <IconButton
-                                            onClick={() => handleShareSocial("dm")}
-                                            size="medium"
-                                            sx={{
-                                                color: "#9CA3AF",
-                                                backgroundColor: "rgba(156, 163, 175, 0.08)",
-                                                width: 48,
-                                                height: 48,
-                                                p: 1,
-                                                "&:hover": { backgroundColor: "rgba(156, 163, 175, 0.18)" },
-                                            }}
-                                        >
-                                            <ChatBubbleIcon sx={{ fontSize: "1.25rem" }} />
-                                        </IconButton>
-                                    </Tooltip>
-
-                                    {/* Close Button */}
-                                    <Divider
-                                        orientation="vertical"
-                                        flexItem
-                                        sx={{ borderColor: "rgba(99, 102, 241, 0.2)", my: 0 }}
-                                    />
-
-                                    <IconButton
-                                        onClick={handleShareMenuClose}
-                                        size="small"
-                                        sx={{
-                                            color: "#94a3b8",
-                                            backgroundColor: "rgba(99, 102, 241, 0.1)",
-                                            "&:hover": {
-                                                backgroundColor: "rgba(99, 102, 241, 0.2)",
-                                            },
-                                        }}
-                                    >
-                                        <CloseIcon sx={{ fontSize: "1rem" }} />
-                                    </IconButton>
-                                </Menu>
                             </Box>
-                        </Card>
+                        </Box>
+                    </Box>
+                ) : (
+                    <Box
+                        className={styles.meetRoot}
+                        sx={{
+                            position: "relative",
+                            width: "100%",
+                            height: "100dvh",
+                            minHeight: "100dvh",
+                            maxHeight: "100dvh",
+                            background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%)",
+                            overflow: "hidden",
+                        }}
+                    >
+                        {/*  VIDEO CANVAS  */}
+                        <div className={styles.videoCanvas}>
+                            <div
+                                className={`${styles.videoGrid} ${layoutCount === 1
+                                    ? styles.one
+                                    : layoutCount === 2
+                                        ? styles.two
+                                        : layoutCount <= 4
+                                            ? styles.four
+                                            : styles.many
+                                    }`}
+                            >
+                                {videos.map(v => (
+                                    <VideoTile
+                                        key={v.socketId}
+                                        stream={v.stream}
+                                        user={participants[v.socketId] || { id: v.socketId, username: "", displayName: "Participant" }}
+                                        isHost={isHost}
+                                        onKick={handleKickParticipant}
+                                        onBlock={handleBlockParticipant}
+                                    />
+                                ))}
+                            </div>
+                        </div>
 
-                        {/* Preview Video Card */}
+                        {/*  LOCAL SELF VIDEO  */}
+                        <video
+                            ref={localVideoRef}
+                            autoPlay
+                            muted
+                            playsInline
+                            className={styles.selfVideo}
+                        />
+
                         <Box
                             sx={{
-                                position: "relative",
-                                width: "100%",
-                                maxWidth: { xs: 400, md: 420 },
-                                aspectRatio: "16 / 9",
-                                borderRadius: 3,
-                                overflow: "hidden",
-                                border: "2px solid rgba(99, 102, 241, 0.3)",
-                                boxShadow: "0 12px 40px rgba(99, 102, 241, 0.25)",
-                                backgroundColor: "#1a1a1a",
+                                position: "absolute",
+                                right: { xs: 10, sm: 12, md: 20 },
+                                bottom: {
+                                    xs: "calc(env(safe-area-inset-bottom, 0px) + 74px)",
+                                    sm: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+                                    md: 56
+                                },
+                                top: { xs: "auto", md: "auto" },
+                                zIndex: 12,
+                                px: { xs: 1.1, md: 1.5 },
+                                py: { xs: 0.5, md: 0.75 },
+                                borderRadius: "999px",
+                                background: "rgba(15, 23, 42, 0.78)",
+                                backdropFilter: "blur(10px)",
+                                border: "1px solid rgba(99, 102, 241, 0.18)",
+                                color: "#f8fafc",
+                                fontSize: { xs: "0.68rem", sm: "0.74rem", md: "0.82rem" },
+                                fontWeight: 600,
+                                maxWidth: { xs: 156, sm: 152, md: "unset" },
+                                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                                whiteSpace: "nowrap",
                             }}
                         >
-                            <video
-                                ref={localVideoRef}
-                                autoPlay
-                                muted
-                                playsInline
-                                style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                    transform: "scaleX(-1)",
-                                    backgroundColor: "#1a1a1a",
-                                }}
-                            />
+                            <span className={styles.onlineDot} /> {participantBadgeCount} participant{participantBadgeCount === 1 ? "" : "s"} active
+                        </Box>
 
-                            {/* Preview Controls */}
+                        {joinNotice && (
                             <Box
                                 sx={{
                                     position: "absolute",
-                                    bottom: { xs: 10, sm: 12 },
+                                    top: 20,
                                     left: "50%",
                                     transform: "translateX(-50%)",
                                     display: "flex",
-                                    gap: { xs: 0.75, sm: 1 },
-                                    zIndex: 10,
+                                    alignItems: "center",
+                                    gap: 1,
+                                    px: 2,
+                                    py: 1.1,
+                                    borderRadius: 999,
+                                    background: "rgba(15, 23, 42, 0.88)",
+                                    backdropFilter: "blur(14px)",
+                                    border: "1px solid rgba(99, 102, 241, 0.2)",
+                                    color: "#f8fafc",
+                                    zIndex: 22,
+                                    maxWidth: "min(560px, calc(100vw - 32px))",
+                                    boxShadow: "0 12px 36px rgba(0, 0, 0, 0.28)",
                                 }}
                             >
-                                <Tooltip title={videoEnabled ? "Turn off camera" : "Turn on camera"}>
+                                <Typography
+                                    sx={{
+                                        fontSize: "0.92rem",
+                                        fontWeight: 600,
+                                        textAlign: "center",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {joinNotice}
+                                </Typography>
+                                <IconButton
+                                    onClick={() => setJoinNotice(null)}
+                                    sx={{
+                                        color: "#cbd5e1",
+                                        p: 0.5,
+                                    }}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
+                            </Box>
+                        )}
+
+                        {/*  CONTROLS  */}
+                        <Box
+                            className={styles.meetingControlBar}
+                            sx={{
+                                position: "absolute",
+                                bottom: {
+                                    xs: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+                                    sm: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+                                    md: 30
+                                },
+                                left: { xs: 10, sm: "50%" },
+                                right: { xs: 10, sm: "auto" },
+                                transform: { xs: "none", sm: "translateX(-50%)" },
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                gap: { xs: 1, sm: 1.15, md: 2 },
+                                rowGap: { xs: 1, sm: 1.15, md: 2 },
+                                flexWrap: { xs: "wrap", md: "nowrap" },
+                                zIndex: 20,
+                                background: "rgba(15, 23, 42, 0.8)",
+                                backdropFilter: "blur(12px)",
+                                borderRadius: { xs: 2.5, md: 3 },
+                                padding: { xs: 1, sm: 1.25, md: 2 },
+                                width: { xs: "auto", sm: "calc(100vw - 24px)", md: "auto" },
+                                maxWidth: { xs: 340, sm: 420, md: "calc(100vw - 24px)" },
+                                boxSizing: "border-box",
+                                border: "1px solid rgba(99, 102, 241, 0.2)",
+                                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+                            }}
+                        >
+                            <ControlGuard isLocked={videoLocked} isHost={isHost}>
+                                <Tooltip title={videoLocked && !isHost ? "Camera disabled by host" : videoEnabled ? "Turn off camera" : "Turn on camera"}>
                                     <IconButton
                                         onClick={() => toggleMedia("video")}
-                                        sx={{
-                                            color: "white",
-                                            backgroundColor: videoEnabled ? "rgba(99, 102, 241, 0.8)" : "rgba(239, 68, 68, 0.8)",
-                                            width: { xs: 40, sm: 44, md: 46 },
-                                            height: { xs: 40, sm: 44, md: 46 },
-                                            "&:hover": {
-                                                backgroundColor: videoEnabled ? "rgba(99, 102, 241, 1)" : "rgba(239, 68, 68, 1)",
-                                            },
-                                            "& .MuiSvgIcon-root": {
-                                                fontSize: { xs: "1.1rem", sm: "1.25rem" },
-                                            },
-                                        }}
+                                        disabled={videoLocked && !isHost}
+                                        sx={controlButtonSx(videoEnabled ? "rgba(99, 102, 241, 0.9)" : "rgba(239, 68, 68, 0.9)")}
                                     >
                                         {videoEnabled ? <VideocamIcon /> : <VideocamOffIcon />}
                                     </IconButton>
                                 </Tooltip>
+                            </ControlGuard>
 
-                                <Tooltip title={audioEnabled ? "Mute microphone" : "Unmute microphone"}>
+                            <Tooltip title="End call">
+                                <IconButton
+                                    onClick={() => handleEndCall({ navigateOnly: true })}
+                                    sx={controlButtonSx("rgba(239, 68, 68, 0.9)")}
+                                >
+                                    <CallEndIcon />
+                                </IconButton>
+                            </Tooltip>
+
+                            <ControlGuard isLocked={audioLocked} isHost={isHost}>
+                                <Tooltip title={audioLocked && !isHost ? "Microphone disabled by host" : audioEnabled ? "Mute microphone" : "Unmute microphone"}>
                                     <IconButton
                                         onClick={() => toggleMedia("audio")}
-                                        sx={{
-                                            color: "white",
-                                            backgroundColor: audioEnabled ? "rgba(99, 102, 241, 0.8)" : "rgba(239, 68, 68, 0.8)",
-                                            width: { xs: 40, sm: 44, md: 46 },
-                                            height: { xs: 40, sm: 44, md: 46 },
-                                            "&:hover": {
-                                                backgroundColor: audioEnabled ? "rgba(99, 102, 241, 1)" : "rgba(239, 68, 68, 1)",
-                                            },
-                                            "& .MuiSvgIcon-root": {
-                                                fontSize: { xs: "1.1rem", sm: "1.25rem" },
-                                            },
-                                        }}
+                                        disabled={audioLocked && !isHost}
+                                        sx={controlButtonSx(audioEnabled ? "rgba(99, 102, 241, 0.9)" : "rgba(239, 68, 68, 0.9)")}
                                     >
                                         {audioEnabled ? <MicIcon /> : <MicOffIcon />}
                                     </IconButton>
                                 </Tooltip>
-                            </Box>
+                            </ControlGuard>
+
+                            <ControlGuard isLocked={videoLocked} isHost={isHost}>
+                                <Tooltip title={videoLocked && !isHost ? "Screen sharing disabled by host" : isScreenSharing ? "Stop sharing" : "Share screen"}>
+                                    <IconButton
+                                        onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                                        disabled={videoLocked && !isHost}
+                                        sx={controlButtonSx(isScreenSharing ? "rgba(34, 197, 94, 0.9)" : "rgba(99, 102, 241, 0.9)")}
+                                    >
+                                        {isScreenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
+                                    </IconButton>
+                                </Tooltip>
+                            </ControlGuard>
+
+                            <Badge badgeContent={newMessages} max={999} color='primary'>
+                                <Tooltip title={chatLocked && !isHost ? "Open chat (sending disabled by host)" : "Open chat"}>
+                                    <IconButton
+                                        onClick={handleToggleChat}
+                                        sx={controlButtonSx(showModal ? "rgba(139, 92, 246, 0.9)" : "rgba(99, 102, 241, 0.9)")}
+                                    >
+                                        <ChatIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </Badge>
+
+                            <HostControls
+                                isHost={isHost}
+                                meetingLocked={meetingLocked}
+                                audioLocked={audioLocked}
+                                videoLocked={videoLocked}
+                                chatEnabled={chatEnabled}
+                                fileSendingEnabled={fileSendingEnabled}
+                                disabled={!socketRef.current}
+                                actionButtonSx={controlButtonSx("rgba(99, 102, 241, 0.9)")}
+                                dangerButtonSx={hostDangerButtonSx}
+                                onToggleMeetingLock={handleToggleMeetingLock}
+                                onToggleParticipantAudio={handleToggleParticipantAudio}
+                                onToggleParticipantVideo={handleToggleParticipantVideo}
+                                onToggleChat={handleToggleParticipantChat}
+                                onToggleFileSending={handleToggleFileSending}
+                                onEndMeetingForAll={handleEndCall}
+                            />
                         </Box>
-                    </Box>
-                </Box>
-            ) : (
-                <Box
-                    className={styles.meetRoot}
-                    sx={{
-                        position: "relative",
-                        width: "100%",
-                        height: "100dvh",
-                        minHeight: "100dvh",
-                        maxHeight: "100dvh",
-                        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1f2937 100%)",
-                        overflow: "hidden",
-                    }}
-                >
-                    {/*  VIDEO CANVAS  */}
-                    <div className={styles.videoCanvas}>
-                        <div
-                            className={`${styles.videoGrid} ${layoutCount === 1
-                                ? styles.one
-                                : layoutCount === 2
-                                    ? styles.two
-                                    : layoutCount <= 4
-                                        ? styles.four
-                                        : styles.many
-                                }`}
-                        >
-                            {videos.map(v => (
-                                <VideoTile
-                                    key={v.socketId}
-                                    stream={v.stream}
-                                    user={participants[v.socketId] || { id: v.socketId, username: "", displayName: "Participant" }}
-                                    isHost={isHost}
-                                    onKick={handleKickParticipant}
-                                    onBlock={handleBlockParticipant}
-                                />
-                            ))}
-                        </div>
-                    </div>
 
-                    {/*  LOCAL SELF VIDEO  */}
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        muted
-                        playsInline
-                        className={styles.selfVideo}
-                    />
+                        {/* CHAT ROOM */}
+                        {showModal && (
+                            <ChatPanel
+                                socket={socketRef.current}
+                                displayName={displayName}
+                                currentUsername={currentUsername}
+                                chatLocked={chatLocked}
+                                fileLocked={chatLocked || fileLocked}
+                                isHost={isHost}
+                                participantCount={totalParticipantCount}
+                            />
+                        )}
 
-                    <Box
-                        sx={{
-                            position: "absolute",
-                            right: { xs: 10, sm: 12, md: 20 },
-                            bottom: {
-                                xs: "calc(env(safe-area-inset-bottom, 0px) + 74px)",
-                                sm: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
-                                md: 56
-                            },
-                            top: { xs: "auto", md: "auto" },
-                            zIndex: 12,
-                            px: { xs: 1.1, md: 1.5 },
-                            py: { xs: 0.5, md: 0.75 },
-                            borderRadius: "999px",
-                            background: "rgba(15, 23, 42, 0.78)",
-                            backdropFilter: "blur(10px)",
-                            border: "1px solid rgba(99, 102, 241, 0.18)",
-                            color: "#f8fafc",
-                            fontSize: { xs: "0.68rem", sm: "0.74rem", md: "0.82rem" },
-                            fontWeight: 600,
-                            maxWidth: { xs: 156, sm: 152, md: "unset" },
-                            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        <span className={styles.onlineDot} /> {participantBadgeCount} participant{participantBadgeCount === 1 ? "" : "s"} active
-                    </Box>
-
-                    {joinNotice && (
-                        <Box
-                            sx={{
-                                position: "absolute",
-                                top: 20,
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                                px: 2,
-                                py: 1.1,
-                                borderRadius: 999,
-                                background: "rgba(15, 23, 42, 0.88)",
-                                backdropFilter: "blur(14px)",
-                                border: "1px solid rgba(99, 102, 241, 0.2)",
-                                color: "#f8fafc",
-                                zIndex: 22,
-                                maxWidth: "min(560px, calc(100vw - 32px))",
-                                boxShadow: "0 12px 36px rgba(0, 0, 0, 0.28)",
-                            }}
-                        >
-                            <Typography
-                                sx={{
-                                    fontSize: "0.92rem",
-                                    fontWeight: 600,
-                                    textAlign: "center",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                }}
-                            >
-                                {joinNotice}
-                            </Typography>
-                            <IconButton
-                                onClick={() => setJoinNotice(null)}
-                                sx={{
-                                    color: "#cbd5e1",
-                                    p: 0.5,
-                                }}
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
-                    )}
-
-                    {/*  CONTROLS  */}
-                    <Box
-                        className={styles.meetingControlBar}
-                        sx={{
-                            position: "absolute",
-                            bottom: {
-                                xs: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-                                sm: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-                                md: 30
-                            },
-                            left: { xs: 10, sm: "50%" },
-                            right: { xs: 10, sm: "auto" },
-                            transform: { xs: "none", sm: "translateX(-50%)" },
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            gap: { xs: 1, sm: 1.15, md: 2 },
-                            rowGap: { xs: 1, sm: 1.15, md: 2 },
-                            flexWrap: { xs: "wrap", md: "nowrap" },
-                            zIndex: 20,
-                            background: "rgba(15, 23, 42, 0.8)",
-                            backdropFilter: "blur(12px)",
-                            borderRadius: { xs: 2.5, md: 3 },
-                            padding: { xs: 1, sm: 1.25, md: 2 },
-                            width: { xs: "auto", sm: "calc(100vw - 24px)", md: "auto" },
-                            maxWidth: { xs: 340, sm: 420, md: "calc(100vw - 24px)" },
-                            boxSizing: "border-box",
-                            border: "1px solid rgba(99, 102, 241, 0.2)",
-                            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-                        }}
-                    >
-                        <ControlGuard isLocked={videoLocked} isHost={isHost}>
-                            <Tooltip title={videoLocked && !isHost ? "Camera disabled by host" : videoEnabled ? "Turn off camera" : "Turn on camera"}>
-                                <IconButton
-                                    onClick={() => toggleMedia("video")}
-                                    disabled={videoLocked && !isHost}
-                                    sx={controlButtonSx(videoEnabled ? "rgba(99, 102, 241, 0.9)" : "rgba(239, 68, 68, 0.9)")}
-                                >
-                                    {videoEnabled ? <VideocamIcon /> : <VideocamOffIcon />}
-                                </IconButton>
-                            </Tooltip>
-                        </ControlGuard>
-
-                        <Tooltip title="End call">
-                            <IconButton
-                                onClick={() => handleEndCall({ navigateOnly: true })}
-                                sx={controlButtonSx("rgba(239, 68, 68, 0.9)")}
-                            >
-                                <CallEndIcon />
-                            </IconButton>
-                        </Tooltip>
-
-                        <ControlGuard isLocked={audioLocked} isHost={isHost}>
-                            <Tooltip title={audioLocked && !isHost ? "Microphone disabled by host" : audioEnabled ? "Mute microphone" : "Unmute microphone"}>
-                                <IconButton
-                                    onClick={() => toggleMedia("audio")}
-                                    disabled={audioLocked && !isHost}
-                                    sx={controlButtonSx(audioEnabled ? "rgba(99, 102, 241, 0.9)" : "rgba(239, 68, 68, 0.9)")}
-                                >
-                                    {audioEnabled ? <MicIcon /> : <MicOffIcon />}
-                                </IconButton>
-                            </Tooltip>
-                        </ControlGuard>
-
-                        <ControlGuard isLocked={videoLocked} isHost={isHost}>
-                            <Tooltip title={videoLocked && !isHost ? "Screen sharing disabled by host" : isScreenSharing ? "Stop sharing" : "Share screen"}>
-                                <IconButton
-                                    onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-                                    disabled={videoLocked && !isHost}
-                                    sx={controlButtonSx(isScreenSharing ? "rgba(34, 197, 94, 0.9)" : "rgba(99, 102, 241, 0.9)")}
-                                >
-                                    {isScreenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
-                                </IconButton>
-                            </Tooltip>
-                        </ControlGuard>
-
-                        <Badge badgeContent={newMessages} max={999} color='primary'>
-                            <Tooltip title={chatLocked && !isHost ? "Open chat (sending disabled by host)" : "Open chat"}>
-                                <IconButton
-                                    onClick={handleToggleChat}
-                                    sx={controlButtonSx(showModal ? "rgba(139, 92, 246, 0.9)" : "rgba(99, 102, 241, 0.9)")}
-                                >
-                                    <ChatIcon />
-                                </IconButton>
-                            </Tooltip>
-                        </Badge>
-
-                        <HostControls
-                            isHost={isHost}
-                            meetingLocked={meetingLocked}
-                            audioLocked={audioLocked}
-                            videoLocked={videoLocked}
-                            chatEnabled={chatEnabled}
-                            fileSendingEnabled={fileSendingEnabled}
-                            disabled={!socketRef.current}
-                            actionButtonSx={controlButtonSx("rgba(99, 102, 241, 0.9)")}
-                            dangerButtonSx={hostDangerButtonSx}
-                            onToggleMeetingLock={handleToggleMeetingLock}
-                            onToggleParticipantAudio={handleToggleParticipantAudio}
-                            onToggleParticipantVideo={handleToggleParticipantVideo}
-                            onToggleChat={handleToggleParticipantChat}
-                            onToggleFileSending={handleToggleFileSending}
-                            onEndMeetingForAll={handleEndCall}
-                        />
-                    </Box>
-
-                    {/* CHAT ROOM */}
-                    {showModal && (
-                        <ChatPanel
-                            socket={socketRef.current}
-                            displayName={displayName}
-                            currentUsername={currentUsername}
-                            chatLocked={chatLocked}
-                            fileLocked={chatLocked || fileLocked}
-                            isHost={isHost}
-                            participantCount={totalParticipantCount}
-                        />
-                    )}
-
-                    <Snackbar
-                        open={toast.open}
-                        autoHideDuration={toast.severity === "error" ? 4000 : 2600}
-                        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-                        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-                    >
-                        <Alert
-                            severity={toast.severity}
-                            variant="filled"
+                        <Snackbar
+                            open={toast.open}
+                            autoHideDuration={toast.severity === "error" ? 4000 : 2600}
                             onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-                            sx={{
-                                width: "100%",
-                                ...(toast.severity === "error" && {
-                                    backgroundColor: "#dc2626",
-                                    color: "#fff"
-                                })
-                            }}
+                            anchorOrigin={{ vertical: "top", horizontal: "center" }}
                         >
-                            {toast.message}
-                        </Alert>
-                    </Snackbar>
-                </Box>
-            )}
+                            <Alert
+                                severity={toast.severity}
+                                variant="filled"
+                                onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+                                sx={{
+                                    width: "100%",
+                                    ...(toast.severity === "error" && {
+                                        backgroundColor: "#dc2626",
+                                        color: "#fff"
+                                    })
+                                }}
+                            >
+                                {toast.message}
+                            </Alert>
+                        </Snackbar>
+                    </Box>
+                )}
 
-            <Snackbar
-                open={toast.open}
-                autoHideDuration={toast.severity === "error" ? 4000 : 2600}
-                onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            >
-                <Alert
-                    severity={toast.severity}
-                    variant="filled"
+                <Snackbar
+                    open={toast.open}
+                    autoHideDuration={toast.severity === "error" ? 4000 : 2600}
                     onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-                    sx={{
-                        width: "100%",
-                        ...(toast.severity === "error" && {
-                            backgroundColor: "#dc2626",
-                            color: "#fff"
-                        })
-                    }}
+                    anchorOrigin={{ vertical: "top", horizontal: "center" }}
                 >
-                    {toast.message}
-                </Alert>
-            </Snackbar>
-        </div>
+                    <Alert
+                        severity={toast.severity}
+                        variant="filled"
+                        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+                        sx={{
+                            width: "100%",
+                            ...(toast.severity === "error" && {
+                                backgroundColor: "#dc2626",
+                                color: "#fff"
+                            })
+                        }}
+                    >
+                        {toast.message}
+                    </Alert>
+                </Snackbar>
+            </div>
         </>
     );
 }
