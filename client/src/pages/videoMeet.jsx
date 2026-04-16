@@ -720,12 +720,15 @@ export default function VideoMeet() {
         }
 
         try {
-            // CRITICAL FIX: Always request BOTH audio and video together
-            // Mobile devices fail with audio-only or video-only requests
-            // This allows independent control of audio/video while maintaining mobile compatibility
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
-                audio: true
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    channelCount: 1,
+                    sampleRate: 48000
+                },
             });
 
             const newVideoTrack = stream.getVideoTracks()[0];
@@ -752,11 +755,9 @@ export default function VideoMeet() {
                     localStreamRef.current.addTrack(newVideoTrack);
                 }
                 videoTrackRef.current = newVideoTrack;
-                // Only enable if user clicked video button
                 videoTrackRef.current.enabled = isVideo;
                 setHasRealVideo(true);
 
-                // Update peer connections with video track
                 Object.values(connectionsRef.current).forEach(pc => {
                     const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
                     if (sender) {
@@ -772,7 +773,6 @@ export default function VideoMeet() {
                     localStreamRef.current.addTrack(newAudioTrack);
                 }
                 audioTrackRef.current = newAudioTrack;
-                // Only enable if user clicked audio button
                 audioTrackRef.current.enabled = !isVideo;
                 setHasRealAudio(true);
 
@@ -812,8 +812,6 @@ export default function VideoMeet() {
             trackRef.current.enabled = false;
         }
 
-        // Don't need to update peer connections for disable - just setting enabled flag
-        // Receivers will see the muted track in their ontrack handler
         isVideo ? setVideoEnabled(false) : setAudioEnabled(false);
     };
 
