@@ -722,13 +722,7 @@ export default function VideoMeet() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: true,
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    channelCount: 1,
-                    sampleRate: 48000
-                },
+                audio: true,
             });
 
             const newVideoTrack = stream.getVideoTracks()[0];
