@@ -42,9 +42,14 @@ Create or join meetings instantly with a clean, modern UI.
 ## Screenshots
 
 ![Landing Page](./screenshots/home.png)
-![Lobby](./screenshots/lobby.png)
 ![Chat Panel](./screenshots/chatPanel.png)
 ![Meeting Page](./screenshots/meeting.png)
+
+## 🎥 Demo Video
+
+[![Watch Demo](https://img.youtube.com/vi/0Wv9Wol_Xxo/maxresdefault.jpg)](https://www.youtube.com/watch?v=0Wv9Wol_Xxo)
+
+*Click the thumbnail above to watch the demo on YouTube*
 
 ## How It Works
 
