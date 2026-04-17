@@ -42,7 +42,7 @@ Create or join meetings instantly with a clean, modern UI.
 ## Screenshots
 
 ![Landing Page](./screenshots/home.png)
-![Meeting Room](./screenshots/lobby.png)(./screenshots/meeting.png)
+![Meeting Room](./screenshots/lobby.png)(./screenshots/chatPanel.png)(./screenshots/meeting.png)
 
 ## How It Works
 
@@ -70,5 +70,11 @@ npm install -->
 ## Author
 
 Made by Rittik Chakraborty
-LinkedIn: https://www.linkedin.com/in/rittik-chakraborty/
-GitHub: https://github.com/devrittik/
+
+### Connect with me:
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rittik-chakraborty/)
+
+<br>
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/devrittik)
