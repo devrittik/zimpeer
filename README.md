@@ -42,7 +42,9 @@ Create or join meetings instantly with a clean, modern UI.
 ## Screenshots
 
 ![Landing Page](./screenshots/home.png)
-![Meeting Room](./screenshots/lobby.png)(./screenshots/chatPanel.png)(./screenshots/meeting.png)
+![Lobby](./screenshots/lobby.png)
+![Chat Panel](./screenshots/chatPanel.png)
+![Meeting Page](./screenshots/meeting.png)
 
 ## How It Works
 
@@ -75,6 +77,6 @@ Made by Rittik Chakraborty
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rittik-chakraborty/)
 
-<br>
-
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/devrittik)
+
+[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/hiimrittik)
